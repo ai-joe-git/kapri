@@ -141,42 +141,42 @@ def get_llamacpp_asset_name(backend: str, os_name: str, arch: str) -> str:
     """
     Map backend/os/arch to exact llama.cpp asset name.
 
-    Based on research from Step 1A (release b8759):
+    Current release: b8762
     """
     # macOS: standard build includes Metal
     if os_name == "macos":
         if arch == "arm64":
-            return "llama-b8759-bin-macos-arm64.tar.gz"
-        return "llama-b8759-bin-macos-x64.tar.gz"
+            return "llama-b8762-bin-macos-arm64.tar.gz"
+        return "llama-b8762-bin-macos-x64.tar.gz"
 
     # Linux
     if os_name == "linux":
         if backend == "vulkan":
-            return f"llama-b8759-bin-ubuntu-vulkan-{arch}.tar.gz"
+            return f"llama-b8762-bin-ubuntu-vulkan-{arch}.tar.gz"
         elif backend == "rocm":
-            return "llama-b8759-bin-ubuntu-rocm-7.2-x64.tar.gz"
+            return "llama-b8762-bin-ubuntu-rocm-7.2-x64.tar.gz"
         elif backend == "cpu":
             if arch == "arm64":
-                return "llama-b8759-bin-ubuntu-arm64.tar.gz"
-            return "llama-b8759-bin-ubuntu-x64.tar.gz"
+                return "llama-b8762-bin-ubuntu-arm64.tar.gz"
+            return "llama-b8762-bin-ubuntu-x64.tar.gz"
 
     # Windows
     if os_name == "windows":
         if backend == "cuda":
-            return "llama-b8759-bin-win-cuda-13.1-x64.zip"
+            return "llama-b8762-bin-win-cuda-13.1-x64.zip"
         elif backend == "vulkan":
-            return "llama-b8759-bin-win-vulkan-x64.zip"
+            return "llama-b8762-bin-win-vulkan-x64.zip"
         elif backend == "sycl":
-            return "llama-b8759-bin-win-sycl-x64.zip"
+            return "llama-b8762-bin-win-sycl-x64.zip"
         elif backend == "cpu":
             if arch == "arm64":
-                return "llama-b8759-bin-win-cpu-arm64.zip"
-            return "llama-b8759-bin-win-cpu-x64.zip"
+                return "llama-b8762-bin-win-cpu-arm64.zip"
+            return "llama-b8762-bin-win-cpu-x64.zip"
 
     # Default to CPU
     if os_name == "linux":
-        return "llama-b8759-bin-ubuntu-x64.tar.gz"
-    return "llama-b8759-bin-win-cpu-x64.zip"
+        return "llama-b8762-bin-ubuntu-x64.tar.gz"
+    return "llama-b8762-bin-win-cpu-x64.zip"
 
 
 def get_llamaswap_asset_name(os_name: str, arch: str) -> str:

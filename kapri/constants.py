@@ -34,3 +34,4 @@ REGISTRY_CACHE = BASE_DIR / "registry_cache.json"
 # Binary names per platform
 LLAMASERVER_BIN = "llama-server.exe" if _system == "Windows" else "llama-server"
 LLAMASWAP_BIN = "llama-swap.exe" if _system == "Windows" else "llama-swap"
+LLAMA_CLI_BIN = "llama-cli.exe" if _system == "Windows" else "llama-cli"

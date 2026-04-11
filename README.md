@@ -44,11 +44,14 @@ Kapri is a complete drop-in replacement for [Ollama](https://ollama.com). Built 
 # Install
 pip install kapri-ai
 
-# Install binaries (auto-detects GPU)
+# Setup (interactive wizard guides you)
 kapri install
 
+# Or use custom paths
+kapri install --llama-server /path/to/llama-server --llama-swap /path/to/llama-swap --import-config /path/to/config.yaml
+
 # Pull a model
-kapri pull qwen2.5-coder
+kapri pull qwen3.5-0.8b
 
 # Start server
 kapri serve

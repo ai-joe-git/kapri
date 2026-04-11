@@ -89,9 +89,14 @@ def pull_model(
             console.print(f"  [dim]Looking for mmproj: {try_mmproj}[/dim]")
             break  # We'll just try the named version
 
-    # Ensure model directory
-    MODEL_DIR.mkdir(parents=True, exist_ok=True)
-    local_path = MODEL_DIR / filename
+    # Ensure model directory - HF format: MODEL_DIR/repo/model-GGUF/
+    # e.g., models/unsloth/Qwen3.5-0.8B-GGUF/
+    # Keep "/" as is - creates nested folder structure like HuggingFace
+    repo_folder = hf_repo  # "unsloth/Qwen3.5-0.8B-GGUF"
+    model_dir = MODEL_DIR / repo_folder
+    model_dir.mkdir(parents=True, exist_ok=True)
+
+    local_path = model_dir / filename
 
     if local_path.exists():
         console.print(f"[yellow]Model already exists:[/yellow] {local_path}")
@@ -104,13 +109,14 @@ def pull_model(
         downloaded_path = hf_hub_download(
             repo_id=hf_repo,
             filename=filename,
-            local_dir=str(MODEL_DIR),
+            local_dir=str(model_dir),
             local_dir_use_symlinks=False,
         )
     except Exception as e:
         raise RuntimeError(f"Failed to download model: {e}")
 
-    # Download mmproj if needed (for vision models)
+    # Download mmproj if needed (for vision models) - save in same folder as model
+    mmproj_saved_path = None
     if download_mmproj and registry_entry:
         mmproj_files = registry_entry.get("mmproj_files", [])
         if mmproj_files:
@@ -123,9 +129,10 @@ def pull_model(
                         mmproj_path = hf_hub_download(
                             repo_id=hf_repo,
                             filename=mmproj_name,
-                            local_dir=str(MODEL_DIR),
+                            local_dir=str(model_dir),
                             local_dir_use_symlinks=False,
                         )
+                        mmproj_saved_path = mmproj_path
                         console.print(
                             f"[green]mmproj downloaded: {mmproj_name}[/green]"
                         )
@@ -140,7 +147,8 @@ def pull_model(
     existing = next((m for m in manifest if m["id"] == model_id), None)
     if existing:
         existing["filename"] = filename
-        existing["path"] = str(downloaded_path)
+        existing["path"] = str(model_dir)  # Store folder path, not file
+        existing["mmproj"] = mmproj_saved_path  # Store mmproj path
         existing["date_updated"] = datetime.utcnow().isoformat() + "Z"
     else:
         size_gb = registry_entry.get("size_gb", {}).get(quant, 0)
@@ -149,7 +157,8 @@ def pull_model(
                 "id": model_id,
                 "name": registry_entry["name"],
                 "filename": filename,
-                "path": downloaded_path,
+                "path": str(model_dir),  # Store folder path
+                "mmproj": mmproj_saved_path,  # Store mmproj path
                 "size_gb": size_gb,
                 "quant": quant,
                 "context": registry_entry.get("context", 4096),
@@ -229,6 +238,11 @@ def get_local_models() -> list[dict]:
     with open(MODELS_MANIFEST, "r", encoding="utf-8") as f:
         data = json.load(f)
         return data if isinstance(data, list) else []
+
+
+def get_all_models() -> list[dict]:
+    """Get all available models from kapri."""
+    return get_local_models()
 
 
 def save_local_models(models: list[dict]) -> None:

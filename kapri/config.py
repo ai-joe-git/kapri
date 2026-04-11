@@ -9,6 +9,7 @@ from .constants import (
     BIN_DIR,
     CONFIG_FILE,
     LLAMASERVER_BIN,
+    LLAMASWAP_BIN,
     MODEL_DIR,
     START_PORT,
 )
@@ -57,7 +58,7 @@ def regenerate_config() -> None:
     """
     models = get_local_models()
 
-    # Get binary path
+    # Get binary path from kapri bin
     server_bin = BIN_DIR / LLAMASERVER_BIN
     if not server_bin.exists():
         # Try common locations
@@ -79,6 +80,14 @@ def regenerate_config() -> None:
         "models": {},
     }
 
+    # Vulkan environment variables (required for GPU inference)
+    vulkan_env = [
+        "GGML_VK_NO_PIPELINE_CACHE=1",
+        "VK_DISABLE_PIPELINE_CACHE=1",
+        "GGML_VK_DISABLE_COOPMAT=1",
+        "GGML_VK_DISABLE_COOPMAT2=1",
+    ]
+
     for i, entry in enumerate(models):
         model_id = entry["id"]
         model_path = pathlib.Path(entry["path"])
@@ -86,26 +95,59 @@ def regenerate_config() -> None:
         if not model_path.exists():
             continue
 
+        # Model path is now a folder - find the main GGUF file
+        gguf_files = list(model_path.glob("*.gguf"))
+        if not gguf_files:
+            console.print(f"[yellow]No GGUF files in:[/yellow] {model_path}")
+            continue
+
+        # Skip mmproj files
+        gguf_files = [f for f in gguf_files if "mmproj" not in f.name.lower()]
+        if not gguf_files:
+            continue
+
+        # Use first GGUF file as main model
+        main_model = gguf_files[0]
+
         # Resolve path - use forward slashes for YAML
-        resolved_path = str(model_path.resolve()).replace("\\", "/")
+        resolved_path = str(main_model.resolve()).replace("\\", "/")
+
+        # Check for mmproj
+        mmproj_path = None
+        mmproj_files = [
+            f for f in model_path.glob("*.gguf") if "mmproj" in f.name.lower()
+        ]
+        if mmproj_files:
+            mmproj_path = str(mmproj_files[0].resolve()).replace("\\", "/")
 
         ctx = get_default_ctx(entry)
         port = START_PORT + i
 
-        # Build command
-        cmd = (
-            f"{server_path} "
-            f"--port ${{PORT}} "
-            f"--model {resolved_path} "
-            f"--ctx-size {ctx} "
-            f"--n-gpu-layers 99 "
-            f"--flash-attn "
-            f"--cache-type-k q8_0 "
-            f"--cache-type-v q8_0 "
-            f"--parallel 2"
-        )
+        # Build command with Vulkan-optimized flags and mmproj if available
+        if mmproj_path:
+            cmd = (
+                f"{server_path} --port ${{PORT}} "
+                f"--host 0.0.0.0 "
+                f"--model {resolved_path} "
+                f"--mmproj {mmproj_path} "
+                f"--ctx-size {ctx} "
+                f"--n-gpu-layers 99 "
+                f"--parallel 1"
+            )
+        else:
+            cmd = (
+                f"{server_path} --port ${{PORT}} "
+                f"--host 0.0.0.0 "
+                f"--model {resolved_path} "
+                f"--ctx-size {ctx} "
+                f"--n-gpu-layers 99 "
+                f"--parallel 1"
+            )
 
-        config["models"][model_id] = {"cmd": cmd}
+        config["models"][model_id] = {
+            "cmd": cmd,
+            "env": vulkan_env,
+        }
 
     # Write atomically
     CONFIG_FILE.parent.mkdir(parents=True, exist_ok=True)
@@ -114,8 +156,8 @@ def regenerate_config() -> None:
     with open(tmp_file, "w", encoding="utf-8") as f:
         yaml.dump(config, f, default_flow_style=False, sort_keys=False)
 
-    # Atomically rename
-    tmp_file.rename(CONFIG_FILE)
+    # Atomically replace
+    tmp_file.replace(CONFIG_FILE)
 
     return config
 
