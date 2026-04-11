@@ -236,12 +236,24 @@ def start_server(port: int = DEFAULT_PORT, foreground: bool = False) -> None:
     if not config_path.exists():
         regenerate_config()
 
-    # Check models
-    models = get_local_models()
-    if not models:
+    # Check models - from both kapri and config
+    kapri_models = get_local_models()
+    config_has_models = False
+    if CONFIG_FILE.exists():
+        import yaml
+
+        with open(CONFIG_FILE, "r", encoding="utf-8") as f:
+            config_data = yaml.safe_load(f) or {}
+        config_models = config_data.get("models", {})
+        # Exclude external models
+        config_has_models = any(
+            m not in ["whisper-large-v3-turbo", "omnivoice-tts"] for m in config_models
+        )
+
+    if not kapri_models and not config_has_models:
         console.print(
-            "[yellow]Warning: No models downloaded. "
-            "Run 'kapri pull <model>' first.[/yellow]"
+            "[yellow]Warning: No models. "
+            "Run 'kapri pull <model>' or 'kapri install --import-config <path>'[/yellow]"
         )
 
     # Get binary - use kapri's bin directory

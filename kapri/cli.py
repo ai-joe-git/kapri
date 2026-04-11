@@ -697,20 +697,44 @@ def list(
         False, "--local-only", help="Only show kapri-downloaded models"
     ),
 ):
-    """List available models (includes local llama.cpp models by default)."""
-    # Default to all models (kapri + local llama.cpp) unless --local-only is set
-    if local_only:
-        models = get_local_models()
-    else:
-        models = get_all_models()
+    """List available models (includes config models + kapri-downloaded)."""
+    import yaml
+
+    # Get kapri-downloaded models
+    kapri_models = get_local_models()
+
+    # Get models from config
+    config_models = []
+    if CONFIG_FILE.exists():
+        with open(CONFIG_FILE, "r", encoding="utf-8") as f:
+            config_data = yaml.safe_load(f) or {}
+        for model_id, model_data in config_data.get("models", {}).items():
+            # Skip external models
+            if model_id in ["whisper-large-v3-turbo", "omnivoice-tts"]:
+                continue
+            config_models.append(
+                {
+                    "id": model_id,
+                    "name": model_data.get("name", model_id),
+                    "source": "config",
+                    "path": model_data.get("cmd", ""),
+                }
+            )
+
+    # Combine (config models first, then kapri models)
+    models = config_models + kapri_models
 
     if json_output:
         console.print(json.dumps(models, indent=2))
         return
 
     if not models:
-        console.print("[yellow]No models downloaded[/yellow]")
-        console.print("Run: kapri pull <model>")
+        console.print("[yellow]No models available[/yellow]")
+        console.print("Options:")
+        console.print("  - kapri pull <model>    # Download a model")
+        console.print(
+            "  - kapri install --import-config <path>  # Import existing config"
+        )
         return
 
     table = Table(title=f"Models ({len(models)})")
@@ -722,12 +746,13 @@ def list(
 
     for m in models:
         source = m.get("source", "kapri")
-        if source == "local_llama_cpp":
-            source = "llama.cpp"
+        size = m.get("size_gb", "-")
+        if size != "-":
+            size = f"{size}GB"
         table.add_row(
             m.get("id", "-"),
             m.get("name", "-")[:30],
-            f"{m.get('size_gb', 0):.1f}GB",
+            size,
             source,
             str(m.get("context", "-")),
         )
