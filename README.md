@@ -61,6 +61,12 @@ kapri install --backend cuda     # NVIDIA GPUs
 kapri install --backend cpu      # CPU only
 ```
 
+**Using an existing llama-server:**
+If you have a working llama-server build (e.g., custom Vulkan build):
+```bash
+kapri install --llama-server /path/to/llama-server.exe
+```
+
 ### Step 3: Start Server
 
 ```bash
