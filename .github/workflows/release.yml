@@ -1,0 +1,80 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: pip install pyinstaller hatchling
+      - name: Install package
+        run: pip install -e .
+      - name: Build
+        run: pyinstaller --onefile --name kapri-linux-x64 kapri/cli.py
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: kapri-linux-x64
+          path: dist/kapri-linux-x64
+
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: pip install pyinstaller hatchling
+      - name: Install package
+        run: pip install -e .
+      - name: Build
+        run: pyinstaller --onefile --name kapri-windows-x64 kapri/cli.py
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: kapri-windows-x64
+          path: dist/kapri-windows-x64.exe
+
+  build-macos:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: pip install pyinstaller hatchling
+      - name: Install package
+        run: pip install -e .
+      - name: Build
+        run: pyinstaller --onefile --name kapri-macos-arm64 kapri/cli.py
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: kapri-macos-arm64
+          path: dist/kapri-macos-arm64
+
+  release:
+    needs: [build-linux, build-windows, build-macos]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+      - name: Create release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: dist/*
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
