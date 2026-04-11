@@ -181,7 +181,13 @@ kapri install --backend cpu    # Force CPU
 | `kapri remove <model>` | Remove a model |
 | `kapri run <model>` | Open web UI chat (default) |
 | `kapri run <model> --tui` | Open terminal chat |
-| `kapri config show` | Show config |
+| `kapri config` | Show full config YAML |
+| `kapri config show-all` | Show full config YAML |
+| `kapri config show <model>` | Show specific model config |
+| `kapri config edit <model>` | Edit model config in editor |
+| `kapri config search <query>` | Search models in config |
+| `kapri config show --path` | Show config file path |
+| `kapri config show --reset` | Regenerate config |
 | `kapri logs` | View logs |
 
 ### Backend Options
