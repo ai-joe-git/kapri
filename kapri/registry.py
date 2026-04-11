@@ -109,9 +109,16 @@ def resolve_model(
     Resolve model reference to registry entry and filename.
 
     Formats:
-      "llama3.2-3b" -> lookup by id
+      "llama3.2-3b" -> lookup by id in registry
       "llama3.2-3b:Q5_K_M" -> lookup + override quant
-      "bartowski/Llama-3.2-3B-GGUF:file.gguf" -> raw HF direct
+      "unsloth/Qwen3.5-0.8B-GGUF" -> auto-detect filename pattern
+      "unsloth/Qwen3.5-0.8B-GGUF:Q4_K_M.gguf" -> explicit filename
+      "HF_REPO:filename.gguf" -> raw HF direct
+
+    Examples:
+      kapri pull unsloth/Qwen3.5-0.8B-GGUF
+      kapri pull unsloth/Qwen3.5-0.8B-GGUF:Q4_K_M
+      kapri pull bartowski/Llama-3.2-3B-Instruct-GGUF:Q4_K_M
 
     Returns: (registry_entry_or_None, resolved_hf_filename)
     """
@@ -119,24 +126,45 @@ def resolve_model(
 
     # Parse model_ref for quant override
     override_quant = quant
+    original_ref = model_ref
     if ":" in model_ref:
         parts = model_ref.split(":", 1)
         model_ref = parts[0]
         if override_quant is None and len(parts) > 1:
             override_quant = parts[1]
 
-    # Check if it's a direct HF reference
-    if "/" in model_ref and "GGUF" in model_ref:
-        filename = override_quant if override_quant else "*.gguf"
-        return None, filename
+    # Check if it's a direct HF reference (contains / and -GGUF or just a repo path)
+    if "/" in model_ref:
+        # Try to auto-detect the GGUF filename pattern
+        repo_name = model_ref.split("/")[-1]
 
-    # Search registry
+        # If we have a specific filename from override_quant
+        if override_quant and override_quant.endswith(".gguf"):
+            return None, override_quant
+
+        # Common file patterns to try
+        quant_to_try = override_quant if override_quant else "Q4_K_M"
+        patterns_to_try = [
+            f"{repo_name}-{quant_to_try}.gguf",
+            f"{repo_name.replace('-GGUF', '')}-{quant_to_try}.gguf",
+            f"{repo_name.replace('_GGUF', '')}-{quant_to_try}.gguf",
+            f"{repo_name.replace('-GGUF', '')}-{quant_to_try}.gguf",
+        ]
+
+        # Return the first pattern - let hf_hub_download figure it out
+        return None, patterns_to_try[0]
+
+    # Search registry by id
     for model in registry:
         if model.get("id", "").lower() == model_ref.lower():
             final_quant = override_quant or model.get("default_quant", "Q4_K_M")
             pattern = model.get("file_pattern", "{id}-{quant}.gguf")
             filename = pattern.replace("{quant}", final_quant)
             return model, filename
+
+    # Not found in registry - try treating as HF repo
+    if "/" in original_ref:
+        return resolve_model(original_ref + ":Q4_K_M", None)
 
     # Not found
     return None, ""

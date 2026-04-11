@@ -476,7 +476,7 @@
       <a href="#models">Models</a>
       <a href="#download">Download</a>
       <a href="#api">API</a>
-      <a href="https://github.com/kapri-ai/kapri" target="_blank" rel="noopener noreferrer">GitHub</a>
+      <a href="https://github.com/ai-joe-git/kapri" target="_blank" rel="noopener noreferrer">GitHub</a>
     </div>
   </nav>
 
@@ -500,7 +500,7 @@ $ kapri serve
     
     <div class="hero-btns">
       <a href="#download" class="btn btn-primary">Download</a>
-      <a href="https://github.com/kapri-ai/kapri" target="_blank" rel="noopener noreferrer" class="btn btn-ghost">GitHub</a>
+      <a href="https://github.com/ai-joe-git/kapri" target="_blank" rel="noopener noreferrer" class="btn btn-ghost">GitHub</a>
     </div>
   </section>
 
@@ -578,7 +578,7 @@ $ kapri serve
         <pre>$ pip install kapri-ai</pre>
       </div>
       <p style="margin: 20px 0;">or download binary</p>
-      <a href="https://github.com/kapri-ai/kapri/releases" target="_blank" class="btn btn-primary">Download for macOS</a>
+      <a href="https://github.com/ai-joe-git/kapri/releases" target="_blank" class="btn btn-primary">Download for macOS</a>
     </div>
   </section>
 
@@ -612,7 +612,7 @@ $ kapri serve
   <!-- Footer -->
   <footer>
     <div class="footer-links">
-      <a href="https://github.com/kapri-ai/kapri">GitHub</a>
+      <a href="https://github.com/ai-joe-git/kapri">GitHub</a>
       <a href="#models">Docs</a>
       <a href="#download">Registry API</a>
       <a href="#download">MIT License</a>
@@ -652,7 +652,7 @@ $ kapri serve
     // Try fetch from registry, fallback to default
     async function loadModels() {
       try {
-        const resp = await fetch('https://kapri-registry.vercel.app/models.json', { signal: AbortSignal.timeout(3000) });
+        const resp = await fetch('https://kapri-registry-8juoldydj-aijoes-projects.vercel.app/models.json', { signal: AbortSignal.timeout(3000) });
         const models = await resp.json();
         renderModels(models.slice(0, 12));
       } catch {

@@ -24,16 +24,43 @@ console = Console()
 def pull_model(model_ref: str, quant: str = "Q4_K_M") -> dict:
     """
     Download a model from HuggingFace.
+
+    Examples:
+      # From registry
+      kapri pull llama3.2-3b
+      kapri pull llama3.2-3b:Q5_K_M
+
+      # Direct from HuggingFace
+      kapri pull unsloth/Qwen3.5-0.8B-GGUF
+      kapri pull unsloth/Qwen3.5-0.8B-GGUF:Q4_K_M
+      kapri pull bartowski/Llama-3.2-3B-Instruct-GGUF:Q4_K_M
     """
     # Resolve model
-    registry_entry, filename = resolve_model(model_ref, quant)
-    if registry_entry is None:
-        raise ValueError(f"Model '{model_ref}' not found in registry")
+    # Handle: repo/format OR repo:filename format
+    if "/" in model_ref:
+        # Direct HF reference
+        if ":" in model_ref:
+            parts = model_ref.split(":")
+            hf_repo = parts[0]
+            filename = parts[1] if len(parts) > 1 else f"*{quant}*.gguf"
+        else:
+            hf_repo = model_ref
+            # Try to find the right filename
+            repo_name = hf_repo.split("/")[-1]
+            filename = f"{repo_name.replace('-GGUF', '')}-{quant}.gguf"
 
-    hf_repo = registry_entry["hf_repo"]
-    model_id = registry_entry["id"]
+        # Generate an ID from the repo
+        model_id = hf_repo.replace("/", "-").replace("-GGUF", "").lower()
+        registry_entry = None
+    else:
+        # Registry lookup
+        registry_entry, filename = resolve_model(model_ref, quant)
+        if registry_entry is None:
+            raise ValueError(f"Model '{model_ref}' not found in registry")
+        hf_repo = registry_entry["hf_repo"]
+        model_id = registry_entry["id"]
 
-    console.print(f"[bold]Pulling:[/bold] {registry_entry['name']}")
+    console.print(f"[bold]Pulling:[/bold] {model_id}")
     console.print(f"  Repository: {hf_repo}")
     console.print(f"  File: {filename}")
 

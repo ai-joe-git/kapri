@@ -23,7 +23,7 @@ dependencies = [
 kapri = "kapri.cli:main"
 
 [project.urls]
-Homepage = "https://getkapri.dev"
+Homepage = "https://kapri-ten.vercel.app"
 Repository = "https://github.com/kapri-ai/kapri"
 Issues = "https://github.com/kapri-ai/kapri/issues"
 
