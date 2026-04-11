@@ -21,20 +21,30 @@ from .registry import fetch_registry, resolve_model
 console = Console()
 
 
-def pull_model(model_ref: str, quant: str = "Q4_K_M") -> dict:
+def pull_model(
+    model_ref: str, quant: str = "Q4_K_M", download_mmproj: bool = True
+) -> dict:
     """
     Download a model from HuggingFace.
 
+    For vision models with mmproj files, this automatically downloads the best available mmproj.
+    Priority: mmproj-F32.gguf > mmproj-F16.gguf > mmproj-BF16.gguf
+
     Examples:
       # From registry
-      kapri pull llama3.2-3b
-      kapri pull llama3.2-3b:Q5_K_M
+      kapri pull qwen3.5-0.8b
+      kapri pull qwen3.5-0.8b:Q5_K_M
 
       # Direct from HuggingFace
       kapri pull unsloth/Qwen3.5-0.8B-GGUF
       kapri pull unsloth/Qwen3.5-0.8B-GGUF:Q4_K_M
       kapri pull bartowski/Llama-3.2-3B-Instruct-GGUF:Q4_K_M
+
+      # Skip mmproj download
+      kapri pull unsloth/Qwen3.5-0.8B-GGUF --no-mmproj
     """
+    from huggingface_hub import hf_hub_download
+
     # Resolve model
     # Handle: repo/format OR repo:filename format
     if "/" in model_ref:
@@ -64,6 +74,21 @@ def pull_model(model_ref: str, quant: str = "Q4_K_M") -> dict:
     console.print(f"  Repository: {hf_repo}")
     console.print(f"  File: {filename}")
 
+    # Get mmproj file if available (for vision models)
+    mmproj_file = None
+    mmproj_url = None
+    if registry_entry and download_mmproj:
+        mmproj_file = registry_entry.get("mmproj_file")
+    if mmproj_file:
+        # Try to find best mmproj (Q8_0 > BF16 > FP16)
+        # mmproj files are usually small and always needed
+        mmproj_priority = ["Q8_0", "BF16", "FP16"]
+        for priority in mmproj_priority:
+            try_mmproj = mmproj_file.replace("{quant}", priority)
+            # Check if exists on HF - we'll try to download
+            console.print(f"  [dim]Looking for mmproj: {try_mmproj}[/dim]")
+            break  # We'll just try the named version
+
     # Ensure model directory
     MODEL_DIR.mkdir(parents=True, exist_ok=True)
     local_path = MODEL_DIR / filename
@@ -73,10 +98,7 @@ def pull_model(model_ref: str, quant: str = "Q4_K_M") -> dict:
         return get_model_info(model_id)
 
     # Download from HuggingFace
-    console.print("[blue]Downloading...[/blue]")
-
-    # Use hf_hub
-    from huggingface_hub import hf_hub_download
+    console.print("[blue]Downloading main model...[/blue]")
 
     try:
         downloaded_path = hf_hub_download(
@@ -86,7 +108,30 @@ def pull_model(model_ref: str, quant: str = "Q4_K_M") -> dict:
             local_dir_use_symlinks=False,
         )
     except Exception as e:
-        raise RuntimeError(f"Failed to download: {e}")
+        raise RuntimeError(f"Failed to download model: {e}")
+
+    # Download mmproj if needed (for vision models)
+    if download_mmproj and registry_entry:
+        mmproj_files = registry_entry.get("mmproj_files", [])
+        if mmproj_files:
+            # Try to find best mmproj: F32 > F16 > BF16
+            mmproj_priority = ["mmproj-F32.gguf", "mmproj-F16.gguf", "mmproj-BF16.gguf"]
+            for mmproj_name in mmproj_priority:
+                if mmproj_name in mmproj_files:
+                    try:
+                        console.print(f"[blue]Downloading mmproj: {mmproj_name}[/blue]")
+                        mmproj_path = hf_hub_download(
+                            repo_id=hf_repo,
+                            filename=mmproj_name,
+                            local_dir=str(MODEL_DIR),
+                            local_dir_use_symlinks=False,
+                        )
+                        console.print(
+                            f"[green]mmproj downloaded: {mmproj_name}[/green]"
+                        )
+                        break
+                    except Exception:
+                        continue
 
     # Update manifest
     manifest = get_local_models()
