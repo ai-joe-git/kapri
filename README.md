@@ -56,6 +56,12 @@ kapri pull qwen3.5-0.8b
 # Start server
 kapri serve
 
+# Open web UI chat
+kapri run qwen3.5-0.8b
+
+# Or use terminal chat (HTTP through llama-swap)
+kapri run qwen3.5-0.8b --tui
+
 # API available at http://localhost:11434
 ```
 
@@ -149,7 +155,8 @@ kapri install --backend cpu    # Force CPU
 | `kapri list` | List downloaded models |
 | `kapri search <query>` | Search registry |
 | `kapri remove <model>` | Remove a model |
-| `kapri run <model>` | Interactive chat |
+| `kapri run <model>` | Open web UI chat (default) |
+| `kapri run <model> --tui` | Open terminal chat |
 | `kapri config show` | Show config |
 | `kapri logs` | View logs |
 
@@ -245,7 +252,7 @@ kapri pull unsloth/Qwen3.5-0.8B-GGUF
 
 - **GitHub:** https://github.com/ai-joe-git/kapri
 - **PyPI:** https://pypi.org/project/kapri-ai/
-- **Website:** https://kapri-ten.vercel.app
+- **Website:** https://kapri.vercel.app
 - **Registry API:** https://kapri-registry.vercel.app/models.json
 
 ---
