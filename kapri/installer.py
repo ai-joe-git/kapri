@@ -139,73 +139,70 @@ def get_arch() -> str:
 
 def get_llamacpp_asset_name(backend: str, os_name: str, arch: str) -> str:
     """
-    Map backend/os/arch to exact llama.cpp asset name.
-
-    Current release: b8762
+    Map backend/os/arch to llama.cpp asset name pattern.
+    The fetch_latest_matching_asset function will find the actual file.
     """
     # macOS: standard build includes Metal
     if os_name == "macos":
-        if arch == "arm64":
-            return "llama-b8762-bin-macos-arm64.tar.gz"
-        return "llama-b8762-bin-macos-x64.tar.gz"
+        return f"llama-*-macos-{arch}.tar.gz"
 
     # Linux
     if os_name == "linux":
         if backend == "vulkan":
-            return f"llama-b8762-bin-ubuntu-vulkan-{arch}.tar.gz"
+            return f"llama-*-ubuntu-vulkan-{arch}.tar.gz"
         elif backend == "rocm":
-            return "llama-b8762-bin-ubuntu-rocm-7.2-x64.tar.gz"
+            return f"llama-*-ubuntu-rocm-7.2-x64.tar.gz"
         elif backend == "cpu":
             if arch == "arm64":
-                return "llama-b8762-bin-ubuntu-arm64.tar.gz"
-            return "llama-b8762-bin-ubuntu-x64.tar.gz"
+                return f"llama-*-ubuntu-arm64.tar.gz"
+            return f"llama-*-ubuntu-x64.tar.gz"
 
     # Windows
     if os_name == "windows":
         if backend == "cuda":
-            return "llama-b8762-bin-win-cuda-13.1-x64.zip"
+            return f"llama-*-win-cuda-13.1-x64.zip"
         elif backend == "vulkan":
-            return "llama-b8762-bin-win-vulkan-x64.zip"
+            return f"llama-*-win-vulkan-x64.zip"
         elif backend == "sycl":
-            return "llama-b8762-bin-win-sycl-x64.zip"
+            return f"llama-*-win-sycl-x64.zip"
         elif backend == "cpu":
             if arch == "arm64":
-                return "llama-b8762-bin-win-cpu-arm64.zip"
-            return "llama-b8762-bin-win-cpu-x64.zip"
+                return f"llama-*-win-cpu-arm64.zip"
+            return f"llama-*-win-cpu-x64.zip"
 
     # Default to CPU
     if os_name == "linux":
-        return "llama-b8762-bin-ubuntu-x64.tar.gz"
-    return "llama-b8762-bin-win-cpu-x64.zip"
+        return f"llama-*-ubuntu-x64.tar.gz"
+    return f"llama-*-win-cpu-x64.zip"
 
 
 def get_llamaswap_asset_name(os_name: str, arch: str) -> str:
     """
-    Map os/arch to exact llama-swap asset name.
-
-    Based on research from Step 1B (release v200):
+    Map os/arch to llama-swap asset name pattern.
     """
     if os_name == "macos":
         if arch == "arm64":
-            return "llama-swap_200_darwin_arm64.tar.gz"
-        return "llama-swap_199_darwin_amd64.tar.gz"
+            return "llama-swap_*_darwin_arm64.tar.gz"
+        return "llama-swap_*_darwin_amd64.tar.gz"
 
     if os_name == "windows":
-        return "llama-swap_200_windows_amd64.zip"
+        return "llama-swap_*_windows_amd64.zip"
 
     # Linux
     if arch == "arm64":
-        return "llama-swap_200_linux_arm64.tar.gz"
-    return "llama-swap_200_linux_amd64.tar.gz"
+        return "llama-swap_*_linux_arm64.tar.gz"
+    return "llama-swap_*_linux_amd64.tar.gz"
 
 
 # ==== GitHub Release Fetcher ====
 
 
-def fetch_latest_release_asset_url(repo: str, asset_name: str) -> str:
+def fetch_latest_release_asset_url(repo: str, asset_pattern: str) -> str:
     """
-    Fetch asset download URL from GitHub releases.
+    Fetch asset download URL from GitHub releases using pattern matching.
     """
+    import fnmatch
+
     api_url = f"https://api.github.com/repos/{repo}/releases/latest"
 
     with httpx.Client(timeout=30.0) as client:
@@ -213,14 +210,14 @@ def fetch_latest_release_asset_url(repo: str, asset_name: str) -> str:
         response.raise_for_status()
         data = response.json()
 
-        # Find asset
+        # Find asset matching pattern
         for asset in data.get("assets", []):
-            if asset["name"] == asset_name:
+            if fnmatch.fnmatch(asset["name"], asset_pattern):
                 return asset["browser_download_url"]
 
         # Asset not found - list available
         available = [a["name"] for a in data.get("assets", [])]
-        raise ValueError(f"Asset '{asset_name}' not found. Available: {available}")
+        raise ValueError(f"No asset matching '{asset_pattern}'. Available: {available}")
 
 
 def get_current_versions() -> dict:
@@ -276,13 +273,18 @@ def download_and_extract(
                         TimeRemainingColumn(),
                         console=console,
                     ) as p:
-                        task = p.add_task("Downloading...", total=total_size)
+                        task = p.add_task(filename[:40], total=total_size)
+                        downloaded = 0
                         for chunk in response.iter_bytes(chunk_size=8192):
-                            f.write(chunk)
-                            p.update(task, advance=len(chunk))
+                            if chunk:
+                                f.write(chunk)
+                                downloaded += len(chunk)
+                                p.update(task, advance=len(chunk))
                 else:
+                    console.print(f"[dim]Downloading {filename}...[/dim]")
                     for chunk in response.iter_bytes(chunk_size=8192):
-                        f.write(chunk)
+                        if chunk:
+                            f.write(chunk)
 
     # Extract
     extracted_bin = None
