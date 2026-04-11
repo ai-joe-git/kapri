@@ -1,23 +1,15 @@
 [build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
 
 [project]
 name = "kapri-ai"
 version = "0.1.0"
 description = "Run AI locally. Beautifully. A drop-in replacement for Ollama."
 readme = "README.md"
-license = { text = "MIT" }
+license = "MIT"
 requires-python = ">=3.10"
 keywords = ["llm", "ai", "local", "llama", "inference", "ollama", "gguf"]
-classifiers = [
-    "Development Status :: 4 - Beta",
-    "Environment :: Console",
-    "Intended Audience :: Developers",
-    "License :: OSI Approved :: MIT License",
-    "Programming Language :: Python :: 3",
-    "Topic :: Scientific/Engineering :: Artificial Intelligence",
-]
 dependencies = [
     "typer>=0.12.0",
     "rich>=13.0.0",
@@ -28,9 +20,15 @@ dependencies = [
 ]
 
 [project.scripts]
-kapri = "kapri.cli:app"
+kapri = "kapri.cli:main"
 
 [project.urls]
 Homepage = "https://getkapri.dev"
 Repository = "https://github.com/kapri-ai/kapri"
 Issues = "https://github.com/kapri-ai/kapri/issues"
+
+[tool.setuptools]
+packages = ["kapri"]
+
+[tool.setuptools.package-data]
+kapri = ["registry/models.json"]

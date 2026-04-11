@@ -15,11 +15,22 @@ from .constants import (
 
 
 def get_bundled_registry() -> list[dict]:
-    """Load bundled registry from package."""
-    bundled = Path(__file__).parent.parent / "registry" / "models.json"
-    if bundled.exists():
-        with open(bundled, "r", encoding="utf-8") as f:
-            return json.load(f)
+    """Load bundled registry from package - look in parent dirs."""
+    # Try multiple locations relative to this file
+    locations = [
+        Path(__file__).parent
+        / "registry_models.json",  # ./registry_models.json (bundled in package)
+        Path(__file__).parent.parent
+        / "registry"
+        / "models.json",  # ../registry/models.json
+        Path(__file__).parent
+        / "registry"
+        / "models.json",  # ./registry/models.json (if included)
+    ]
+    for bundled in locations:
+        if bundled.exists():
+            with open(bundled, "r", encoding="utf-8") as f:
+                return json.load(f)
     return []
 
 
