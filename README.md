@@ -54,6 +54,13 @@ kapri install
 
 This downloads llama-server and llama-swap binaries (auto-detects your GPU backend).
 
+Or specify a backend:
+```bash
+kapri install --backend vulkan   # AMD GPUs
+kapri install --backend cuda     # NVIDIA GPUs
+kapri install --backend cpu      # CPU only
+```
+
 ### Step 3: Start Server
 
 ```bash
@@ -154,7 +161,11 @@ kapri install --backend cpu    # Force CPU
 
 | Command | Description |
 |---------|-------------|
-| `kapri install` | Install llama-server and llama-swap binaries |
+| `kapri install` | Install binaries (interactive wizard) |
+| `kapri install --backend vulkan` | Install specific backend |
+| `kapri backend vulkan` | Switch GPU backend |
+| `kapri update` | Update binaries |
+| `kapri update --all` | Update kapri and binaries |
 | `kapri pull <model>` | Download a model |
 | `kapri serve` | Start the server |
 | `kapri stop` | Stop the server |
@@ -166,6 +177,18 @@ kapri install --backend cpu    # Force CPU
 | `kapri run <model> --tui` | Open terminal chat |
 | `kapri config show` | Show config |
 | `kapri logs` | View logs |
+
+### Backend Options
+
+```bash
+kapri backend auto      # Auto-detect (recommended)
+kapri backend vulkan   # AMD GPUs
+kapri backend cuda     # NVIDIA GPUs
+kapri backend rocm     # AMD Linux
+kapri backend sycl     # Intel GPUs
+kapri backend metal   # Apple Silicon
+kapri backend cpu     # CPU only
+```
 
 ---
 

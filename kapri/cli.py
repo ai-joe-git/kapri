@@ -198,13 +198,28 @@ def install(
     Install or configure llama-server and llama-swap.
 
     Options:
-      --llama-server <path>    Use existing llama-server (e.g., your Vulkan build)
-      --llama-swap <path>     Use existing llama-swap binary
+      --llama-server <path>    Use existing llama-server binary
+      --llama-swap <path>    Use existing llama-swap binary
       --import-config <path>  Import models from existing llama-swap config
-      --backend <type>        Backend for auto-download (cuda, vulkan, etc.)
+      --backend <type>       Backend: auto, vulkan, cuda, rocm, sycl, metal, cpu
+      --force                Force reinstall even if already installed
 
     If no options provided, shows interactive setup wizard.
     """
+    # If backend specified, just install that backend
+    if backend:
+        valid = ["auto", "vulkan", "cuda", "rocm", "sycl", "metal", "cpu"]
+        if backend.lower() not in valid:
+            console.print(f"[red]Invalid backend: {backend}[/red]")
+            console.print(f"Valid: {', '.join(valid)}")
+            raise typer.Exit(1)
+
+        versions = install_binaries(force=force, backend=backend.lower())
+        console.print(f"[green]Installed {backend}:[/green]")
+        console.print(f"  llama.cpp: {versions.get('llamacpp')}")
+        console.print(f"  llama-swap: {versions.get('llamaswap')}")
+        return
+
     # Check if any existing path provided
     has_custom_path = llama_server_path or llama_swap_path or import_config
 
@@ -244,19 +259,35 @@ def install(
 
     if not use_existing_server:
         console.print("  Options:")
-        console.print("    1. Download Vulkan build (auto)")
-        console.print("    2. Specify custom path")
-        console.print("    3. Skip (use default)")
+        console.print("    1. Auto-detect (recommended)")
+        console.print("    2. Vulkan (AMD GPUs)")
+        console.print("    3. CUDA (NVIDIA GPUs)")
+        console.print("    4. ROCm (AMD Linux)")
+        console.print("    5. SYCL (Intel GPUs)")
+        console.print("    6. Metal (Apple Silicon)")
+        console.print("    7. CPU only")
+        console.print("    8. Specify custom path")
+        console.print("    9. Skip (use default)")
 
         response = console.input("  Choice [1]: ").strip() or "1"
 
-        if response == "1":
-            # Download Vulkan
-            versions = install_binaries(force=force, backend="vulkan")
+        backend_map = {
+            "1": "auto",
+            "2": "vulkan",
+            "3": "cuda",
+            "4": "rocm",
+            "5": "sycl",
+            "6": "metal",
+            "7": "cpu",
+        }
+
+        if response in backend_map:
+            backend = backend_map[response]
+            versions = install_binaries(force=force, backend=backend)
             console.print(f"[green]Downloaded: {versions.get('llamacpp')}[/green]")
-        elif response == "2":
+        elif response == "8":
             server_path = console.input("  Enter path to llama-server: ").strip()
-        # 3 = skip, use default
+        # 9 = skip, use default
 
     # Step 2: llama-swap
     console.print("\n[bold]Step 2: llama-swap[/bold]")
@@ -780,10 +811,76 @@ def info(
 
 
 @app.command("update")
-def update():
-    """Update binaries and registry."""
-    versions = install_binaries(force=True)
-    console.print("[green]Update complete[/green]")
+def update(
+    everything: bool = typer.Option(
+        False, "--all", "-a", help="Update kapri package and all binaries"
+    ),
+):
+    """Update kapri and/or binaries."""
+    import subprocess
+
+    if everything:
+        # Update kapri package
+        console.print("[blue]Updating kapri package...[/blue]")
+        result = subprocess.run(
+            [sys.executable, "-m", "pip", "install", "--upgrade", "kapri-ai"],
+            capture_output=True,
+            text=True,
+        )
+        if result.returncode == 0:
+            console.print("[green]Kapri updated[/green]")
+        else:
+            console.print(f"[yellow]Warning: {result.stderr}[/yellow]")
+
+        # Update binaries
+        console.print("[blue]Updating binaries...[/blue]")
+        versions = install_binaries(force=True, backend=None)
+        console.print(
+            f"[green]Updated: {versions.get('llamacpp')}, {versions.get('llamaswap')}[/green]"
+        )
+    else:
+        # Just update binaries
+        versions = install_binaries(force=True, backend=None)
+        console.print(
+            f"[green]Binaries updated: {versions.get('llamacpp')}, {versions.get('llamaswap')}[/green]"
+        )
+
+
+@app.command("backend")
+def set_backend(
+    backend: str = typer.Argument(
+        ...,
+        help="Backend: auto, vulkan, cuda, rocm, sycl, metal, cpu",
+    ),
+    force: bool = typer.Option(True, "--force", "-f", help="Force reinstall"),
+):
+    """Change GPU backend and re-download binaries."""
+    valid_backends = ["auto", "vulkan", "cuda", "rocm", "sycl", "metal", "cpu"]
+
+    backend = backend.lower()
+    if backend not in valid_backends:
+        console.print(f"[red]Invalid backend: {backend}[/red]")
+        console.print(f"Valid: {', '.join(valid_backends)}")
+        raise typer.Exit(1)
+
+    console.print(f"[blue]Installing {backend} backend...[/blue]")
+    versions = install_binaries(force=force, backend=backend)
+
+    # Save backend preference
+    settings_path = VERSIONS_FILE
+    if settings_path.exists():
+        with open(settings_path, "r", encoding="utf-8") as f:
+            versions_data = json.load(f)
+    else:
+        versions_data = {}
+
+    versions_data["backend"] = backend
+    with open(settings_path, "w", encoding="utf-8") as f:
+        json.dump(versions_data, f, indent=2)
+
+    console.print(f"[green]Backend set to {backend}[/green]")
+    console.print(f"  llama.cpp: {versions.get('llamacpp')}")
+    console.print(f"  llama-swap: {versions.get('llamaswap')}")
 
 
 @app.command()
