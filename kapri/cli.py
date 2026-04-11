@@ -934,32 +934,210 @@ def logs(
         console.print(content)
 
 
-@app.command("config")
-def config_cmd(
-    show: bool = typer.Option(False, "--show", help="Show config"),
+# Config subcommand group
+config_app = typer.Typer(name="config", help="Manage configuration")
+
+
+@config_app.command("show-all")
+def show_all_config():
+    """Show full config."""
+    cfg = load_config()
+    if cfg:
+        import yaml
+
+        console.print(yaml.dump(cfg))
+    else:
+        console.print("[yellow]No config found[/yellow]")
+
+
+@config_app.command("show")
+def show_full(
     path: bool = typer.Option(False, "--path", help="Show config path"),
     reset: bool = typer.Option(False, "--reset", help="Regenerate config"),
 ):
-    """Manage configuration."""
+    """Show full config, or use --path, --reset."""
     if path:
         console.print(str(CONFIG_FILE))
         return
 
-    if show or (not show and not reset):
-        cfg = load_config()
-        if cfg:
-            import yaml
-
-            console.print(yaml.dump(cfg))
-        else:
-            console.print("[yellow]No config found[/yellow]")
-
     if reset:
         regenerate_config()
         console.print("[green]Config regenerated[/green]")
+        return
+
+    cfg = load_config()
+    if cfg:
+        import yaml
+
+        console.print(yaml.dump(cfg))
+    else:
+        console.print("[yellow]No config found[/yellow]")
 
 
-# Model config subcommand
+# Register config as subcommand
+app.add_typer(config_app, name="config")
+
+
+@config_app.command("show")
+def config_show_model(
+    model: str = typer.Argument(..., help="Model ID to show"),
+    json_output: bool = typer.Option(False, "--json", help="JSON output"),
+):
+    """Show model configuration."""
+    import yaml
+
+    config_path = CONFIG_FILE
+    if not config_path.exists():
+        console.print("[red]Config file not found[/red]")
+        raise typer.Exit(1)
+
+    with open(config_path, "r", encoding="utf-8") as f:
+        config_data = yaml.safe_load(f) or {}
+
+    models = config_data.get("models", {})
+
+    # Search for model (case-insensitive)
+    found = None
+    for m_id, m_data in models.items():
+        if model.lower() == m_id.lower():
+            found = (m_id, m_data)
+            break
+
+    # Try partial match
+    if not found:
+        model_lower = model.lower().replace("-", "").replace("_", "")
+        for m_id, m_data in models.items():
+            m_id_normalized = m_id.lower().replace("-", "").replace("_", "")
+            if model_lower in m_id_normalized or m_id_normalized in model_lower:
+                found = (m_id, m_data)
+                break
+
+    if not found:
+        console.print(f"[red]Model not found:[/red] {model}")
+        raise typer.Exit(1)
+
+    m_id, m_data = found
+
+    if json_output:
+        console.print(json.dumps({m_id: m_data}, indent=2))
+    else:
+        table = Table(title=f"Model: {m_id}")
+        table.add_column("Property")
+        table.add_column("Value")
+
+        table.add_row("id", m_id)
+        table.add_row("name", str(m_data.get("name", "-")))
+        table.add_row("description", str(m_data.get("description", "-")))
+
+        env = m_data.get("env", [])
+        if env:
+            table.add_row("env", "\n".join(env))
+
+        cmd = m_data.get("cmd", "-")
+        if len(cmd) > 80:
+            cmd = cmd[:80] + "..."
+        table.add_row("cmd", cmd)
+
+        console.print(table)
+
+
+@config_app.command("edit")
+def config_edit_model(
+    model: str = typer.Argument(..., help="Model ID to edit"),
+):
+    """Edit model configuration in editor."""
+    import subprocess
+
+    # Verify model exists
+    import yaml
+
+    config_path = CONFIG_FILE
+    if not config_path.exists():
+        console.print("[red]Config file not found[/red]")
+        raise typer.Exit(1)
+
+    with open(config_path, "r", encoding="utf-8") as f:
+        config_data = yaml.safe_load(f) or {}
+
+    models = config_data.get("models", {})
+
+    found = None
+    for m_id, m_data in models.items():
+        if model.lower() == m_id.lower():
+            found = m_id
+            break
+
+    if not found:
+        model_lower = model.lower().replace("-", "").replace("_", "")
+        for m_id, m_data in models.items():
+            m_id_normalized = m_id.lower().replace("-", "").replace("_", "")
+            if model_lower in m_id_normalized or m_id_normalized in model_lower:
+                found = m_id
+                break
+
+    if not found:
+        console.print(f"[red]Model not found:[/red] {model}")
+        raise typer.Exit(1)
+
+    editor = os.environ.get("EDITOR", "notepad")
+    console.print(f"[yellow]Opening config in editor:[/yellow] {editor}")
+    console.print(f"[dim]Edit model '{found}' in config, then save and exit.[/dim]")
+
+    subprocess.run([editor, str(CONFIG_FILE)])
+
+
+@config_app.command("search")
+def config_search_model(
+    query: str = typer.Argument(..., help="Search query"),
+    json_output: bool = typer.Option(False, "--json", help="JSON output"),
+):
+    """Search models in config by name or description."""
+    import yaml
+
+    config_path = CONFIG_FILE
+    if not config_path.exists():
+        console.print("[red]Config file not found[/red]")
+        raise typer.Exit(1)
+
+    with open(config_path, "r", encoding="utf-8") as f:
+        config_data = yaml.safe_load(f) or {}
+
+    models = config_data.get("models", {})
+
+    query_lower = query.lower()
+    results = []
+
+    for m_id, m_data in models.items():
+        if (
+            query_lower in m_id.lower()
+            or query_lower in m_data.get("name", "").lower()
+            or query_lower in m_data.get("description", "").lower()
+        ):
+            results.append((m_id, m_data))
+
+    if not results:
+        console.print(f"[yellow]No models found matching:[/yellow] {query}")
+        return
+
+    if json_output:
+        console.print(json.dumps({m_id: m_data for m_id, m_data in results}, indent=2))
+    else:
+        table = Table(title=f"Results ({len(results)})")
+        table.add_column("ID")
+        table.add_column("Name")
+        table.add_column("Description")
+
+        for m_id, m_data in results:
+            table.add_row(
+                m_id,
+                m_data.get("name", "-")[:25],
+                m_data.get("description", "-")[:40],
+            )
+
+        console.print(table)
+
+
+# Model config subcommand (kept for backward compatibility)
 model_app = typer.Typer(help="Manage model configurations")
 
 
