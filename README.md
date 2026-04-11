@@ -40,30 +40,37 @@ Kapri is a complete drop-in replacement for [Ollama](https://ollama.com). Built 
 
 ## Quick Start
 
+### Step 1: Install
+
 ```bash
-# Install
 pip install kapri-ai
+```
 
-# Setup (interactive wizard guides you)
+### Step 2: Setup
+
+```bash
 kapri install
+```
 
-# Or use custom paths
-kapri install --llama-server /path/to/llama-server --llama-swap /path/to/llama-swap --import-config /path/to/config.yaml
+This downloads llama-server and llama-swap binaries (auto-detects your GPU backend).
 
-# Pull a model
-kapri pull qwen3.5-0.8b
+### Step 3: Start Server
 
-# Start server
+```bash
 kapri serve
+```
 
-# Open web UI chat
+### Step 4: Chat
+
+```bash
+# Opens web UI (default)
 kapri run qwen3.5-0.8b
 
-# Or use terminal chat (HTTP through llama-swap)
+# Or terminal chat
 kapri run qwen3.5-0.8b --tui
-
-# API available at http://localhost:11434
 ```
+
+The server is also available at `http://localhost:11434` for any OpenAI-compatible client.
 
 Then use with any OpenAI-compatible client:
 
@@ -252,7 +259,7 @@ kapri pull unsloth/Qwen3.5-0.8B-GGUF
 
 - **GitHub:** https://github.com/ai-joe-git/kapri
 - **PyPI:** https://pypi.org/project/kapri-ai/
-- **Website:** https://kapri.vercel.app
+- **Website:** https://kapri-ai.vercel.app
 - **Registry API:** https://kapri-registry.vercel.app/models.json
 
 ---
