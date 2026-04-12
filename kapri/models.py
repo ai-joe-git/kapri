@@ -146,26 +146,26 @@ def pull_model(
     # Check if already in manifest
     existing = next((m for m in manifest if m["id"] == model_id), None)
     if existing:
-existing["filename"] = filename
+        existing["filename"] = filename
         existing["path"] = str(model_dir / filename)  # Store full file path
         existing["mmproj"] = mmproj_saved_path  # Store mmproj path
         existing["date_updated"] = datetime.utcnow().isoformat() + "Z"
     else:
         size_gb = registry_entry.get("size_gb", {}).get(quant, 0)
-manifest.append(
-        {
-            "id": model_id,
-            "name": registry_entry["name"],
-            "filename": filename,
-            "path": str(model_dir / filename),  # Store full file path
-            "mmproj": mmproj_saved_path,  # Store mmproj path
-            "size_gb": size_gb,
-            "quant": quant,
-            "context": registry_entry.get("context", 4096),
-            "date_added": datetime.utcnow().isoformat() + "Z",
-            "hf_repo": hf_repo,
-        }
-    )
+        manifest.append(
+            {
+                "id": model_id,
+                "name": registry_entry["name"],
+                "filename": filename,
+                "path": str(model_dir / filename),  # Store full file path
+                "mmproj": mmproj_saved_path,  # Store mmproj path
+                "size_gb": size_gb,
+                "quant": quant,
+                "context": registry_entry.get("context", 4096),
+                "date_added": datetime.utcnow().isoformat() + "Z",
+                "hf_repo": hf_repo,
+            }
+        )
 
     save_local_models(manifest)
 

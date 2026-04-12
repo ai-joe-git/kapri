@@ -62,7 +62,6 @@ def start_server(port: int = DEFAULT_PORT, foreground: bool = False) -> None:
             # Continue - the old server will be replaced
 
     # Determine config source - use internal config, import from original only once at install time
-
     imported_config_path = settings.get("imported_config")
 
     # Prefer imported config, fallback to kapri's own config
@@ -81,33 +80,33 @@ def start_server(port: int = DEFAULT_PORT, foreground: bool = False) -> None:
         with open(local_config, "r", encoding="utf-8") as f:
             config_data = yaml.safe_load(f) or {}
 
-        # Keep copy of original for extracting hooks/groups later
-        original_config_data = dict(config_data)
+    # Keep copy of original for extracting hooks/groups later
+    original_config_data = dict(config_data)
 
-        # Remove startPort from config to use --listen parameter instead
-        # This ensures llama-swap listens on the port we specify (DEFAULT_PORT = 11434)
-        if "startPort" in config_data:
-            del config_data["startPort"]
+    # Remove startPort from config to use --listen parameter instead
+    # This ensures llama-swap listens on the port we specify (DEFAULT_PORT = 11434)
+    if "startPort" in config_data:
+        del config_data["startPort"]
 
-        # Ensure macros are defined for consistent model config format
-        if "macros" not in config_data:
-            config_data["macros"] = {
-                "llama_server": '"${env.LLAMA_SERVER}"',
-                "listen_args": "--host 0.0.0.0 --port ${PORT}",
-            }
-        # Don't add llama_cli macro - not used anymore
+    # Ensure macros are defined for consistent model config format
+    if "macros" not in config_data:
+        config_data["macros"] = {
+            "llama_server": '"${env.LLAMA_SERVER}"',
+            "listen_args": "--host 0.0.0.0 --port ${PORT}",
+        }
 
-        # Increase healthCheckTimeout for slower models (especially vision models)
-        config_data["healthCheckTimeout"] = 60000  # 60 seconds
+    # Increase healthCheckTimeout for slower models (especially vision models)
+    config_data["healthCheckTimeout"] = 60000  # 60 seconds
 
-        # Add globalTTL for time-based model unloading
-        # Models stay loaded while in use, unload after idle to free VRAM
-        # llama-swap stays running in background (light process)
-        config_data["globalTTL"] = 600  # 10 minutes - unload models after 10min idle
+    # Add globalTTL for time-based model unloading
+    # Models stay loaded while in use, unload after idle to free VRAM
+    # llama-swap stays running in background (light process)
+    config_data["globalTTL"] = 600  # 10 minutes - unload models after 10min idle
 
-        # Filter out non-llama.cpp models (whisper STT, omnivoice TTS)
-        # These are external servers, not chat models
-        external_models = ["whisper-large-v3-turbo", "omnivoice-tts"]
+    # Filter out non-llama.cpp models (whisper STT, omnivoice TTS)
+    # These are external servers, not chat models
+    external_models = ["whisper-large-v3-turbo", "omnivoice-tts"]
+    if "models" in config_data:
         models_to_remove = [
             m for m in external_models if m in config_data.get("models", {})
         ]
@@ -115,127 +114,128 @@ def start_server(port: int = DEFAULT_PORT, foreground: bool = False) -> None:
             del config_data["models"][m]
             console.print(f"[dim]Skipped external model: {m}[/dim]")
 
-        # Remove hooks/preload for external models
-        if "hooks" in config_data and isinstance(config_data.get("hooks"), dict):
-            hooks = config_data["hooks"]
-            if "on_startup" in hooks and isinstance(hooks["on_startup"], dict):
-                on_startup = hooks["on_startup"]
-                if "preload" in on_startup and isinstance(on_startup["preload"], list):
-                    preload = on_startup["preload"]
-                    filtered_preload = [p for p in preload if p not in external_models]
-                    on_startup["preload"] = filtered_preload
-                    if not filtered_preload:
-                        del config_data["hooks"]
+    # Remove hooks/preload for external models
+    if "hooks" in config_data and isinstance(config_data.get("hooks"), dict):
+        hooks = config_data["hooks"]
+        if "on_startup" in hooks and isinstance(hooks["on_startup"], dict):
+            on_startup = hooks["on_startup"]
+            if "preload" in on_startup and isinstance(on_startup["preload"], list):
+                preload = on_startup["preload"]
+                filtered_preload = [p for p in preload if p not in external_models]
+                on_startup["preload"] = filtered_preload
+                if not filtered_preload:
+                    del config_data["hooks"]
 
-        # Remove groups for external models
-        if "groups" in config_data and isinstance(config_data["groups"], dict):
-            groups_to_remove = []
-            for g_name, g_data in config_data["groups"].items():
-                members = g_data.get("members", [])
-                if isinstance(members, list) and any(
-                    m in external_models for m in members
-                ):
-                    groups_to_remove.append(g_name)
-            for g in groups_to_remove:
-                del config_data["groups"][g]
-            if not config_data["groups"]:
-                del config_data["groups"]
+    # Remove groups for external models
+    if "groups" in config_data and isinstance(config_data["groups"], dict):
+        groups_to_remove = []
+        for g_name, g_data in config_data["groups"].items():
+            members = g_data.get("members", [])
+            if isinstance(members, list) and any(m in external_models for m in members):
+                groups_to_remove.append(g_name)
+        for g in groups_to_remove:
+            del config_data["groups"][g]
+        if not config_data["groups"]:
+            del config_data["groups"]
 
-        # Get kapri-downloaded models
+    # Get kapri-downloaded models
+    kapri_models = get_local_models()
 
-        # Get kapri-downloaded models
-        kapri_models = get_local_models()
+    # Ensure models key exists
+    if "models" not in config_data:
+        config_data["models"] = {}
 
+    # Add kapri models to config if not already there
+    for km in kapri_models:
+        model_id = km["id"]
+        if model_id not in config_data.get("models", {}):
+            model_path = pathlib.Path(km["path"])
 
-# Add kapri models to config if not already there
-for km in kapri_models:
-    model_id = km["id"]
-    if model_id not in config_data.get("models", {}):
-        model_path = pathlib.Path(km["path"])
+            # If path is a directory, append filename
+            if model_path.is_dir() and km.get("filename"):
+                model_path = model_path / km["filename"]
 
-        # If path is a directory, append filename
-        if model_path.is_dir() and km.get("filename"):
-            model_path = model_path / km["filename"]
+            if model_path.exists() and model_path.is_file():
+                # Resolve path
+                resolved_path = str(model_path.resolve())
 
-        if model_path.exists() and model_path.is_file():
-            # Resolve path with forward slashes
-            resolved_path = str(model_path.resolve()).replace("\\", "/")
+                # Get llama-server from settings or use kapri bin
+                custom_server = settings.get("custom_llama_server")
+                if custom_server:
+                    local_llama_server = pathlib.Path(custom_server)
+                else:
+                    # Use kapri's downloaded llama-server
+                    local_llama_server = BIN_DIR / LLAMASERVER_BIN
 
-            # Get llama-server from settings or use kapri bin
-            custom_server = settings.get("custom_llama_server")
-            if custom_server:
-                local_llama_server = pathlib.Path(custom_server)
-            else:
-                # Use kapri's downloaded llama-server
-                local_llama_server = BIN_DIR / LLAMASERVER_BIN
+                ctx = km.get("context", 32768)
+                # Use smaller context for faster loading
+                ctx = min(ctx, 32768)
 
-            ctx = km.get("context", 32768)
-            # Use smaller context for faster loading
-            ctx = min(ctx, 32768)
+                # Build command in the same format as user's config
+                # Using macros like ${llama_server} ${listen_args}
+                vulkan_env = [
+                    "GGML_VK_NO_PIPELINE_CACHE=1",
+                    "VK_DISABLE_PIPELINE_CACHE=1",
+                    "GGML_VK_DISABLE_COOPMAT=1",
+                    "GGML_VK_DISABLE_COOPMAT2=1",
+                ]
 
-            # Build command in the same format as user's config
-            # Using macros like ${llama_server} ${listen_args}
-            vulkan_env = [
-                "GGML_VK_NO_PIPELINE_CACHE=1",
-                "VK_DISABLE_PIPELINE_CACHE=1",
-                "GGML_VK_DISABLE_COOPMAT=1",
-                "GGML_VK_DISABLE_COOPMAT2=1",
-            ]
+                # Add mmproj if available (for vision models)
+                mmproj_arg = ""
+                if km.get("mmproj"):
+                    mmproj_resolved = str(pathlib.Path(km["mmproj"]).resolve())
+                    mmproj_arg = f'--mmproj "{mmproj_resolved}" '
 
-            # Use the exact format from user's config
-            model_entry = {
-                "name": km.get("name", model_id),
-                "description": f"Kapri model: {km.get('name', model_id)}",
-                "env": vulkan_env,
-                "cmd": (
+                # Build command on a single line
+                cmd_line = (
                     f"${{llama_server}} ${{listen_args}} "
                     f'-m "{resolved_path}" '
-                    f"-ngl 99 "
-                    f"--jinja "
-                    f"-fa on "
-                    f"--temp 0.7 "
-                    f"-c {ctx} "
-                    f"--top-p 1.0 "
-                    f"--top-k 0 "
-                    f"--parallel 1 "
-                    f"--no-warmup"
-                ),
-            }
+                    f"{mmproj_arg}"
+                    f"-ngl 99 --jinja -fa on --temp 0.7 -c {ctx} --top-p 1.0 --top-k 0 --parallel 1 --no-warmup"
+                )
 
-            config_data["models"][model_id] = model_entry
-            console.print(f"[dim]Added kapri model to config: {model_id}[/dim]")
+                # Use the exact format from user's config
+                model_entry = {
+                    "name": km.get("name", model_id),
+                    "description": f"Kapri model: {km.get('name', model_id)}",
+                    "env": vulkan_env,
+                    "cmd": cmd_line,
+                }
 
-        # Copy hooks from original config if they exist
-        # BUT skip whisper/tts hooks - these are external STT/TTS servers, not llama.cpp models
-        if "hooks" in original_config_data:
-            hooks = original_config_data["hooks"]
-            if "on_startup" in hooks and "preload" in hooks["on_startup"]:
-                # Filter out non-llama.cpp models (whisper, omnivoice, etc.)
-                preload = hooks["on_startup"]["preload"]
-                chat_models = [
-                    m
-                    for m in preload
-                    if m not in ["whisper-large-v3-turbo", "omnivoice-tts"]
-                ]
-                if chat_models:
-                    config_data["hooks"] = {"on_startup": {"preload": chat_models}}
-                    console.print("[dim]Copied only chat model hooks[/dim]")
+                config_data["models"][model_id] = model_entry
+                console.print(f"[dim]Added kapri model to config: {model_id}[/dim]")
 
-        # Copy groups from original config (for persistent models like whisper)
-        # BUT skip - these are external STT/TTS groups, not for kapri
-        # if "groups" in original_config_data:
-        #     config_data["groups"] = original_config_data["groups"]
-        #     console.print("[dim]Copied groups from original config[/dim]")
+    # Copy hooks from original config if they exist
+    # BUT skip whisper/tts hooks - these are external STT/TTS servers, not llama.cpp models
+    if "hooks" in original_config_data:
+        hooks = original_config_data["hooks"]
+        if "on_startup" in hooks and "preload" in hooks["on_startup"]:
+            # Filter out non-llama.cpp models (whisper, omnivoice, etc.)
+            preload = hooks["on_startup"]["preload"]
+            chat_models = [
+                m
+                for m in preload
+                if m not in ["whisper-large-v3-turbo", "omnivoice-tts"]
+            ]
+            if chat_models:
+                config_data["hooks"] = {"on_startup": {"preload": chat_models}}
+                console.print("[dim]Copied only chat model hooks[/dim]")
 
-        # Write merged config to kapri's config location
-        CONFIG_FILE.parent.mkdir(parents=True, exist_ok=True)
-        with open(CONFIG_FILE, "w", encoding="utf-8") as f:
-            yaml.dump(config_data, f, default_flow_style=False, sort_keys=False)
-
-        console.print(f"[dim]Using merged config: {CONFIG_FILE}[/dim]")
-        console.print(
-            f"[dim]globalTTL: {config_data.get('globalTTL', 'default')}s[/dim]"
+    # Write merged config to kapri's config location
+    CONFIG_FILE.parent.mkdir(parents=True, exist_ok=True)
+    with open(CONFIG_FILE, "w", encoding="utf-8") as f:
+        yaml.dump(
+            config_data,
+            f,
+            default_flow_style=False,
+            sort_keys=False,
+            indent=2,
+            allow_unicode=True,
+            width=1000,  # Prevent line wrapping
         )
+
+    console.print(f"[dim]Using merged config: {CONFIG_FILE}[/dim]")
+    console.print(f"[dim]globalTTL: {config_data.get('globalTTL', 'default')}s[/dim]")
 
     # Ensure config exists - regenerate if needed
     config_path = CONFIG_FILE
@@ -327,9 +327,9 @@ for km in kapri_models:
         raise RuntimeError("Server timeout")
 
     console.print(f"[bold green]Kapri is running[/bold green]")
-    console.print(f"  Port: {port}")
-    console.print(f"  Config: {CONFIG_FILE}")
-    console.print(f"  Logs: {LOG_FILE}")
+    console.print(f" Port: {port}")
+    console.print(f" Config: {CONFIG_FILE}")
+    console.print(f" Logs: {LOG_FILE}")
 
 
 def stop_server() -> None:

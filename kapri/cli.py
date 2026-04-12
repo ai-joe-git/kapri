@@ -128,13 +128,11 @@ def configure_custom_paths(
             console.print(f"[red]Config not found:[/red] {import_config}")
             return False
 
-        # Copy to kapri config location
-        dest = CONFIG_FILE
-        console.print(f"[dim]Copying config to: {dest}[/dim]")
-        shutil_module.copy2(source, dest)
-        copied_config_path = str(dest)
-    else:
-        copied_config_path = None
+# Copy to kapri config location
+ dest = CONFIG_FILE
+ console.print(f"[dim]Copying config to: {dest}[/dim]")
+ shutil_module.copy2(source, dest)
+ copied_config_path = str(dest)
 
     # Save COPIED paths to settings
     from .constants import VERSIONS_FILE
