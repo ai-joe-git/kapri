@@ -146,58 +146,64 @@ def start_server(port: int = DEFAULT_PORT, foreground: bool = False) -> None:
         # Get kapri-downloaded models
         kapri_models = get_local_models()
 
-        # Add kapri models to config if not already there
-        for km in kapri_models:
-            model_id = km["id"]
-            if model_id not in config_data.get("models", {}):
-                model_path = pathlib.Path(km["path"])
-                if model_path.exists():
-                    # Resolve path with forward slashes
-                    resolved_path = str(model_path.resolve()).replace("\\", "/")
 
-                    # Get llama-server from settings or use kapri bin
-                    custom_server = settings.get("custom_llama_server")
-                    if custom_server:
-                        local_llama_server = pathlib.Path(custom_server)
-                    else:
-                        # Use kapri's downloaded llama-server
-                        local_llama_server = BIN_DIR / LLAMASERVER_BIN
+# Add kapri models to config if not already there
+for km in kapri_models:
+    model_id = km["id"]
+    if model_id not in config_data.get("models", {}):
+        model_path = pathlib.Path(km["path"])
 
-                    ctx = km.get("context", 32768)
-                    # Use smaller context for faster loading
-                    ctx = min(ctx, 32768)
+        # If path is a directory, append filename
+        if model_path.is_dir() and km.get("filename"):
+            model_path = model_path / km["filename"]
 
-                    # Build command in the same format as user's config
-                    # Using macros like ${llama_server} ${listen_args}
-                    vulkan_env = [
-                        "GGML_VK_NO_PIPELINE_CACHE=1",
-                        "VK_DISABLE_PIPELINE_CACHE=1",
-                        "GGML_VK_DISABLE_COOPMAT=1",
-                        "GGML_VK_DISABLE_COOPMAT2=1",
-                    ]
+        if model_path.exists() and model_path.is_file():
+            # Resolve path with forward slashes
+            resolved_path = str(model_path.resolve()).replace("\\", "/")
 
-                    # Use the exact format from user's config
-                    model_entry = {
-                        "name": km.get("name", model_id),
-                        "description": f"Kapri model: {km.get('name', model_id)}",
-                        "env": vulkan_env,
-                        "cmd": (
-                            f"${{llama_server}} ${{listen_args}} "
-                            f'-m "{resolved_path}" '
-                            f"-ngl 99 "
-                            f"--jinja "
-                            f"-fa on "
-                            f"--temp 0.7 "
-                            f"-c {ctx} "
-                            f"--top-p 1.0 "
-                            f"--top-k 0 "
-                            f"--parallel 1 "
-                            f"--no-warmup"
-                        ),
-                    }
+            # Get llama-server from settings or use kapri bin
+            custom_server = settings.get("custom_llama_server")
+            if custom_server:
+                local_llama_server = pathlib.Path(custom_server)
+            else:
+                # Use kapri's downloaded llama-server
+                local_llama_server = BIN_DIR / LLAMASERVER_BIN
 
-                    config_data["models"][model_id] = model_entry
-                    console.print(f"[dim]Added kapri model to config: {model_id}[/dim]")
+            ctx = km.get("context", 32768)
+            # Use smaller context for faster loading
+            ctx = min(ctx, 32768)
+
+            # Build command in the same format as user's config
+            # Using macros like ${llama_server} ${listen_args}
+            vulkan_env = [
+                "GGML_VK_NO_PIPELINE_CACHE=1",
+                "VK_DISABLE_PIPELINE_CACHE=1",
+                "GGML_VK_DISABLE_COOPMAT=1",
+                "GGML_VK_DISABLE_COOPMAT2=1",
+            ]
+
+            # Use the exact format from user's config
+            model_entry = {
+                "name": km.get("name", model_id),
+                "description": f"Kapri model: {km.get('name', model_id)}",
+                "env": vulkan_env,
+                "cmd": (
+                    f"${{llama_server}} ${{listen_args}} "
+                    f'-m "{resolved_path}" '
+                    f"-ngl 99 "
+                    f"--jinja "
+                    f"-fa on "
+                    f"--temp 0.7 "
+                    f"-c {ctx} "
+                    f"--top-p 1.0 "
+                    f"--top-k 0 "
+                    f"--parallel 1 "
+                    f"--no-warmup"
+                ),
+            }
+
+            config_data["models"][model_id] = model_entry
+            console.print(f"[dim]Added kapri model to config: {model_id}[/dim]")
 
         # Copy hooks from original config if they exist
         # BUT skip whisper/tts hooks - these are external STT/TTS servers, not llama.cpp models
