@@ -4,6 +4,9 @@ import pathlib
 from typing import Optional
 
 import yaml
+from rich.console import Console
+
+console = Console()
 
 from .constants import (
     BIN_DIR,
