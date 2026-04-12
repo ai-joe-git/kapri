@@ -115,8 +115,14 @@ main {
 /* Models Grid */
 .models-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  grid-template-columns: 1fr;
   gap: 16px;
+}
+@media (min-width: 640px) {
+  .models-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (min-width: 1024px) {
+  .models-grid { grid-template-columns: repeat(3, 1fr); }
 }
 .model-card {
   border: 1px solid #e5e5e5;
@@ -367,15 +373,18 @@ function renderModels(models) {
   grid.style.display = 'grid';
   empty.style.display = 'none';
   
-  grid.innerHTML = models.map(m => `
-    <div class="model-card" data-id="${m.id}" data-name="${m.name.toLowerCase()}" data-tags="${m.tags.join(',')}">
+  grid.innerHTML = models.map(m => {
+    const size = m.size_gb && m.size_gb[m.default_quant] ? m.size_gb[m.default_quant] : (m.size_gb || '-');
+    const sizeStr = typeof size === 'number' ? `${size}GB` : size;
+    return `
+    <div class="model-card" data-id="${m.id}" data-name="${m.name.toLowerCase()}" data-tags="${(m.tags || []).join(',')}">
       <div class="model-header">
         <span class="model-name">${m.name}</span>
-        <span class="model-size">${m.size_gb}GB</span>
+        <span class="model-size">${sizeStr}</span>
       </div>
-      <p class="model-desc">${m.description}</p>
+      <p class="model-desc">${m.description || ''}</p>
       <div class="model-tags">
-        ${m.tags.map(t => `<span class="tag">${t}</span>`).join('')}
+        ${(m.tags || []).map(t => `<span class="tag">${t}</span>`).join('')}
       </div>
       <div class="model-cmd">
         <span>kapri pull ${m.id}</span>
@@ -386,7 +395,7 @@ function renderModels(models) {
         </button>
       </div>
     </div>
-  `).join('');
+  `}).join('');
 }
 
 function filterModels() {
@@ -410,7 +419,7 @@ function copyCmd(btn, cmd) {
 // Try to fetch from registry, fallback to defaults
 async function loadModels() {
   try {
-    const resp = await fetch('https://kapri-registry-8juoldydj-aijoes-projects.vercel.app/models.json', { 
+    const resp = await fetch('https://kapri-registry.vercel.app/models.json', { 
       signal: AbortSignal.timeout(3000) 
     });
     const models = await resp.json();
