@@ -77,6 +77,7 @@ def regenerate_config() -> str:
         lines.append("parallel = 1")
         lines.append("no-warmup = true")
         lines.append("jinja = true")
+        lines.append("reasoning = off")
 
         if mmproj_path:
             lines.append(f"mmproj = {mmproj_path}")
