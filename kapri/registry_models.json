@@ -236,6 +236,36 @@
     "license": "nvidia"
   },
   {
+    "id": "qwen3.6-27b",
+    "name": "Qwen 3.6 27B",
+    "description": "Unsloth's Qwen3.6 27B - Powerful vision model.",
+    "hf_repo": "unsloth/Qwen3.6-27B-GGUF",
+    "default_quant": "Q4_K_M",
+    "quants": ["Q4_K_S", "Q4_K_M", "Q5_K_S", "Q5_K_M", "Q6_K", "Q8_0", "BF16"],
+    "file_pattern": "Qwen3.6-27B-{quant}.gguf",
+    "mmproj_files": ["mmproj-F32.gguf", "mmproj-F16.gguf", "mmproj-BF16.gguf"],
+    "size_gb": { "Q4_K_M": 15.7, "Q5_K_M": 18.7, "Q6_K": 21.6, "Q8_0": 27.4, "BF16": 53.8 },
+    "context": 262144,
+    "tags": ["large", "vision", "qwen", "unsloth"],
+    "capabilities": ["chat", "vision"],
+    "license": "apache-2.0"
+  },
+  {
+    "id": "qwen3.6-35b-a3b",
+    "name": "Qwen 3.6 35B-A3B",
+    "description": "Unsloth's Qwen3.6 35B MoE - Powerful vision model.",
+    "hf_repo": "unsloth/Qwen3.6-35B-A3B-GGUF",
+    "default_quant": "Q4_K_M",
+    "quants": ["Q4_K_S", "Q4_K_M", "Q5_K_S", "Q5_K_M", "Q6_K", "Q8_0", "BF16"],
+    "file_pattern": "Qwen3.6-35B-A3B-{quant}.gguf",
+    "mmproj_files": ["mmproj-F32.gguf", "mmproj-F16.gguf", "mmproj-BF16.gguf"],
+    "size_gb": { "Q4_K_M": 20.6, "Q5_K_M": 24.4, "Q6_K": 28.2, "Q8_0": 35.9, "BF16": 69.4 },
+    "context": 262144,
+    "tags": ["large", "vision", "qwen", "moe", "unsloth"],
+    "capabilities": ["chat", "vision"],
+    "license": "apache-2.0"
+  },
+  {
     "id": "deepseek-v3.2",
     "name": "DeepSeek V3.2",
     "description": "Unsloth's DeepSeek V3.2 - MoE model.",
