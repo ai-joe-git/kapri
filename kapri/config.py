@@ -1,8 +1,7 @@
 """Kapri config auto-generation for llama.cpp router mode."""
 
 import pathlib
-import configparser
-import io
+import re
 from typing import Optional
 
 from rich.console import Console
@@ -19,11 +18,6 @@ from .models import get_local_models
 
 
 def model_id_from_filename(filename: str, manifest: Optional[list[dict]] = None) -> str:
-    """
-    Extract model ID from filename.
-
-    Prefers manifest ID lookup, fallback to filename parsing.
-    """
     if manifest is None:
         manifest = get_local_models()
 
@@ -38,12 +32,11 @@ def model_id_from_filename(filename: str, manifest: Optional[list[dict]] = None)
 
 
 def get_default_ctx(model_entry: dict) -> int:
-    """Get safe default context size."""
     context = model_entry.get("context", 4096)
     return min(context, 32768)
 
 
-def regenerate_config() -> configparser.ConfigParser:
+def regenerate_config() -> str:
     """
     Generate models.ini for llama.cpp router mode.
 
@@ -53,22 +46,11 @@ def regenerate_config() -> configparser.ConfigParser:
       [model-id]
       model = /path/to/file.gguf
       n-gpu-layers = 99
-      ctx-size = 32768
       ...
     """
     models = get_local_models()
-    config = configparser.ConfigParser()
 
-    config.add_section("DEFAULT")
-    config.set("DEFAULT", "version", "1")
-
-    server_bin = BIN_DIR / LLAMASERVER_BIN
-    if not server_bin.exists():
-        for name in ["llama-server", "llama-server.exe"]:
-            alt = BIN_DIR / name
-            if alt.exists():
-                server_bin = alt
-                break
+    lines = ["version = 1", ""]
 
     for entry in models:
         model_id = entry["id"]
@@ -96,30 +78,57 @@ def regenerate_config() -> configparser.ConfigParser:
             if mmproj_files:
                 mmproj_path = str(mmproj_files[0].resolve())
 
-        config.add_section(model_id)
-        config.set(model_id, "model", resolved_path)
-        config.set(model_id, "n-gpu-layers", "99")
-        config.set(model_id, "ctx-size", str(get_default_ctx(entry)))
-        config.set(model_id, "parallel", "1")
-        config.set(model_id, "no-warmup", "true")
-        config.set(model_id, "jinja", "true")
+        lines.append(f"[{model_id}]")
+        lines.append(f"model = {resolved_path}")
+        lines.append("n-gpu-layers = 99")
+        lines.append(f"ctx-size = {get_default_ctx(entry)}")
+        lines.append("parallel = 1")
+        lines.append("no-warmup = true")
+        lines.append("jinja = true")
 
         if mmproj_path:
-            config.set(model_id, "mmproj", mmproj_path)
+            lines.append(f"mmproj = {mmproj_path}")
+
+        lines.append("")
+
+    content = "\n".join(lines)
 
     MODELS_INI.parent.mkdir(parents=True, exist_ok=True)
     with open(MODELS_INI, "w", encoding="utf-8") as f:
-        config.write(f, space_around_delimiters=False)
+        f.write(content)
 
-    return config
+    return content
 
 
-def load_config() -> configparser.ConfigParser:
-    """Load current models.ini config."""
-    config = configparser.ConfigParser()
-    if MODELS_INI.exists():
-        config.read(MODELS_INI, encoding="utf-8")
-    return config
+def load_config() -> dict:
+    """Parse models.ini into {section: {key: value}} dict."""
+    return _parse_ini(MODELS_INI)
+
+
+def _parse_ini(path: pathlib.Path) -> dict:
+    """Parse INI file manually, handling top-level version line."""
+    if not path.exists():
+        return {}
+
+    result = {}
+    current_section = None
+
+    for line in path.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line:
+            continue
+
+        section_match = re.match(r"^\[(.+)\]$", line)
+        if section_match:
+            current_section = section_match.group(1)
+            result[current_section] = {}
+            continue
+
+        kv_match = re.match(r"^(\S[^=]*?)\s*=\s*(.+)$", line)
+        if kv_match and current_section:
+            result[current_section][kv_match.group(1).strip()] = kv_match.group(2).strip()
+
+    return result
 
 
 MODELS_PRESET_FILE = MODELS_INI

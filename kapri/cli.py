@@ -220,13 +220,14 @@ def run(
 ):
     """Start a chat session. Default: opens web UI. Use --tui for terminal chat."""
 
-    models_in_config = {}
-    if MODELS_PRESET_FILE.exists():
-        import configparser
+    ensure_server_running()
 
-        cfg = configparser.ConfigParser()
-        cfg.read(MODELS_PRESET_FILE, encoding="utf-8")
-        models_in_config = {s: dict(cfg.items(s)) for s in cfg.sections() if s != "DEFAULT"}
+    models_in_config = load_config()
+
+    # Fallback to local manifest if no models in INI
+    if not models_in_config:
+        for m in get_local_models():
+            models_in_config[m["id"]] = {"model": m.get("path", "")}
 
     model_id = model
     model_normalized = (
@@ -661,22 +662,19 @@ def show_full(
         return
 
     if model:
-        import configparser
-
-        cfg = configparser.ConfigParser()
-        if not MODELS_PRESET_FILE.exists():
+        cfg = load_config()
+        if not cfg:
             console.print("[red]Config file not found[/red]")
             raise typer.Exit(1)
 
-        cfg.read(MODELS_PRESET_FILE, encoding="utf-8")
         found = None
-        for s in cfg.sections():
+        for s in cfg:
             if model.lower() == s.lower():
                 found = s
                 break
         if not found:
             model_lower = model.lower().replace("-", "").replace("_", "")
-            for s in cfg.sections():
+            for s in cfg:
                 s_norm = s.lower().replace("-", "").replace("_", "")
                 if model_lower in s_norm or s_norm in model_lower:
                     found = s
@@ -688,7 +686,7 @@ def show_full(
         table = Table(title=f"Model: {found}")
         table.add_column("Property")
         table.add_column("Value")
-        for key, value in cfg.items(found):
+        for key, value in cfg[found].items():
             table.add_row(key, value)
         console.print(table)
     else:
@@ -723,22 +721,12 @@ def config_search_model(
     json_output: bool = typer.Option(False, "--json", help="JSON output"),
 ):
     """Search models in config by name."""
-    import configparser
-
-    if not MODELS_PRESET_FILE.exists():
-        console.print("[red]Config file not found[/red]")
-        raise typer.Exit(1)
-
-    cfg = configparser.ConfigParser()
-    cfg.read(MODELS_PRESET_FILE, encoding="utf-8")
+    cfg = load_config()
 
     query_lower = query.lower()
     results = []
 
-    for section in cfg.sections():
-        if section == "DEFAULT":
-            continue
-        items = dict(cfg.items(section))
+    for section, items in cfg.items():
         if query_lower in section.lower():
             results.append((section, items))
             continue
@@ -773,17 +761,10 @@ def model_config_show(
     Example:
         kapri model config show qwen3.5-0.8b
     """
-    import configparser
-
-    if not MODELS_PRESET_FILE.exists():
-        console.print("[red]Config file not found[/red]")
-        raise typer.Exit(1)
-
-    cfg = configparser.ConfigParser()
-    cfg.read(MODELS_PRESET_FILE, encoding="utf-8")
+    cfg = load_config()
 
     found = None
-    for s in cfg.sections():
+    for s in cfg:
         if model.lower() == s.lower():
             found = s
             break
@@ -792,7 +773,7 @@ def model_config_show(
         console.print(f"[red]Model not found:[/red] {model}")
         raise typer.Exit(1)
 
-    items = dict(cfg.items(found))
+    items = cfg[found]
 
     if json_output:
         console.print(json.dumps({found: items}, indent=2))
@@ -816,23 +797,14 @@ def model_config_search(
     Example:
         kapri model config search qwen
     """
-    import configparser
-
-    if not MODELS_PRESET_FILE.exists():
-        console.print("[red]Config file not found[/red]")
-        raise typer.Exit(1)
-
-    cfg = configparser.ConfigParser()
-    cfg.read(MODELS_PRESET_FILE, encoding="utf-8")
+    cfg = load_config()
 
     query_lower = query.lower()
     results = []
 
-    for section in cfg.sections():
-        if section == "DEFAULT":
-            continue
+    for section, items in cfg.items():
         if query_lower in section.lower():
-            results.append((section, dict(cfg.items(section))))
+            results.append((section, items))
 
     if not results:
         console.print(f"[yellow]No models found matching:[/yellow] {query}")
