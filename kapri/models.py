@@ -136,8 +136,20 @@ def pull_model(
             local_dir=str(model_dir),
             local_dir_use_symlinks=False,
         )
-    except Exception as e:
-        raise RuntimeError(f"Failed to download model: {e}")
+    except Exception:
+        # Retry with -UD- prefix for unsloth XL/IQ quants
+        base_name = model_ref.split("/")[-1].replace("-GGUF", "") if "/" in model_ref else model_id
+        ud_filename = f"{base_name}-UD-{quant}.gguf"
+        if ud_filename != filename:
+            try:
+                downloaded_path = hf_hub_download(
+                    repo_id=hf_repo,
+                    filename=ud_filename,
+                    local_dir=str(model_dir),
+                    local_dir_use_symlinks=False,
+                )
+            except Exception:
+                raise RuntimeError(f"Failed to download model. File {filename} not found on {hf_repo}.")
 
     # Download mmproj if needed (for vision models) - save in same folder as model
     mmproj_saved_path = None
