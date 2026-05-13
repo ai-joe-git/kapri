@@ -197,7 +197,7 @@ def install(
 @app.command()
 def pull(
     model: str = typer.Argument(..., help="Model ID (e.g., llama3.2-3b)"),
-    quant: str = typer.Option("Q4_K_M", "--quant", "-q", help="Quantization"),
+    quant: str = typer.Option("Q4_K_XL", "--quant", "-q", help="Quantization"),
 ):
     """Download a model from HuggingFace."""
     try:

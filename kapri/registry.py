@@ -143,7 +143,7 @@ def resolve_model(
             return None, override_quant
 
         # Common file patterns to try
-        quant_to_try = override_quant if override_quant else "Q4_K_M"
+        quant_to_try = override_quant if override_quant else "Q4_K_XL"
         patterns_to_try = [
             f"{repo_name}-{quant_to_try}.gguf",
             f"{repo_name.replace('-GGUF', '')}-{quant_to_try}.gguf",
