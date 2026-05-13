@@ -56,27 +56,19 @@ def regenerate_config() -> str:
         model_id = entry["id"]
         model_path = pathlib.Path(entry["path"])
 
-        if not model_path.exists():
-            continue
+        model_dir = model_path.parent if not model_path.is_dir() else model_path
 
-        gguf_files = list(model_path.parent.glob("*.gguf")) if not model_path.parent == model_path else [model_path]
+        gguf_files = [f for f in model_dir.glob("*.gguf") if "mmproj" not in f.name.lower()]
         if not gguf_files:
             continue
 
-        gguf_files = [f for f in gguf_files if "mmproj" not in f.name.lower()]
-        if not gguf_files:
-            continue
-
-        main_model = model_path if model_path.is_file() else gguf_files[0]
+        main_model = gguf_files[0]
         resolved_path = str(main_model.resolve())
 
         mmproj_path = None
-        if model_path.parent.exists():
-            mmproj_files = [
-                f for f in model_path.parent.glob("*.gguf") if "mmproj" in f.name.lower()
-            ]
-            if mmproj_files:
-                mmproj_path = str(mmproj_files[0].resolve())
+        mmproj_files = [f for f in model_dir.glob("*.gguf") if "mmproj" in f.name.lower()]
+        if mmproj_files:
+            mmproj_path = str(mmproj_files[0].resolve())
 
         lines.append(f"[{model_id}]")
         lines.append(f"model = {resolved_path}")
