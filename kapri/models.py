@@ -143,15 +143,13 @@ def pull_model(
             ud_filename = f"{ud_parts[0]}-UD-{ud_parts[1]}.gguf"
         else:
             ud_filename = filename.replace(".gguf", "-UD.gguf")
-        try:
-            downloaded_path = hf_hub_download(
-                repo_id=hf_repo,
-                filename=ud_filename,
-                local_dir=str(model_dir),
-                local_dir_use_symlinks=False,
-            )
-        except Exception:
-            raise RuntimeError(f"Failed to download model. File {filename} not found on {hf_repo}.")
+        downloaded_path = hf_hub_download(
+            repo_id=hf_repo,
+            filename=ud_filename,
+            local_dir=str(model_dir),
+            local_dir_use_symlinks=False,
+        )
+        filename = ud_filename  # Store the actual downloaded filename
 
     # Download mmproj if needed (for vision models) - save in same folder as model
     mmproj_saved_path = None
