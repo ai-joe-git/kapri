@@ -137,19 +137,21 @@ def pull_model(
             local_dir_use_symlinks=False,
         )
     except Exception:
-        # Retry with -UD- prefix for unsloth XL/IQ quants
-        base_name = model_ref.split("/")[-1].replace("-GGUF", "") if "/" in model_ref else model_id
-        ud_filename = f"{base_name}-UD-{quant}.gguf"
-        if ud_filename != filename:
-            try:
-                downloaded_path = hf_hub_download(
-                    repo_id=hf_repo,
-                    filename=ud_filename,
-                    local_dir=str(model_dir),
-                    local_dir_use_symlinks=False,
-                )
-            except Exception:
-                raise RuntimeError(f"Failed to download model. File {filename} not found on {hf_repo}.")
+        # Retry with -UD- prefix (unsloth convention for XL/IQ quants)
+        ud_parts = filename.replace(".gguf", "").rsplit("-", 1)
+        if len(ud_parts) == 2:
+            ud_filename = f"{ud_parts[0]}-UD-{ud_parts[1]}.gguf"
+        else:
+            ud_filename = filename.replace(".gguf", "-UD.gguf")
+        try:
+            downloaded_path = hf_hub_download(
+                repo_id=hf_repo,
+                filename=ud_filename,
+                local_dir=str(model_dir),
+                local_dir_use_symlinks=False,
+            )
+        except Exception:
+            raise RuntimeError(f"Failed to download model. File {filename} not found on {hf_repo}.")
 
     # Download mmproj if needed (for vision models) - save in same folder as model
     mmproj_saved_path = None
