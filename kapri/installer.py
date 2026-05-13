@@ -24,10 +24,8 @@ from .constants import (
     BASE_DIR,
     BIN_DIR,
     LLAMACPP_REPO,
-    LLAMASWAP_REPO,
     VERSIONS_FILE,
     LLAMASERVER_BIN,
-    LLAMASWAP_BIN,
 )
 
 console = Console()
@@ -176,24 +174,6 @@ def get_llamacpp_asset_name(backend: str, os_name: str, arch: str) -> str:
     return f"llama-*-win-cpu-x64.zip"
 
 
-def get_llamaswap_asset_name(os_name: str, arch: str) -> str:
-    """
-    Map os/arch to llama-swap asset name pattern.
-    """
-    if os_name == "macos":
-        if arch == "arm64":
-            return "llama-swap_*_darwin_arm64.tar.gz"
-        return "llama-swap_*_darwin_amd64.tar.gz"
-
-    if os_name == "windows":
-        return "llama-swap_*_windows_amd64.zip"
-
-    # Linux
-    if arch == "arm64":
-        return "llama-swap_*_linux_arm64.tar.gz"
-    return "llama-swap_*_linux_amd64.tar.gz"
-
-
 # ==== GitHub Release Fetcher ====
 
 
@@ -290,9 +270,8 @@ def download_and_extract(
     extracted_bin = None
     if filename.endswith(".zip"):
         with zipfile.ZipFile(temp_path, "r") as zf:
-            # Find binary
             for name in zf.namelist():
-                if "llama-server" in name or "llama-swap" in name:
+                if "llama-server" in name:
                     ext = ".exe" if get_platform() == "windows" else ""
                     if name.endswith(ext) and not name.endswith("/"):
                         zf.extract(name, dest_dir)
@@ -301,7 +280,7 @@ def download_and_extract(
     elif filename.endswith(".tar.gz"):
         with tarfile.open(temp_path, "r:gz") as tf:
             for member in tf.getmembers():
-                if "llama-server" in member.name or "llama-swap" in member.name:
+                if "llama-server" in member.name:
                     ext = ".exe" if get_platform() == "windows" else ""
                     if member.name.endswith(ext) and not member.isdir():
                         tf.extract(member, dest_dir)
@@ -326,7 +305,7 @@ def download_and_extract(
 
 def install_binaries(force: bool = False, backend: Optional[str] = None) -> dict:
     """
-    Install llama-server and llama-swap binaries.
+    Install llama-server binary from llama.cpp releases.
     """
     # Detect platform
     os_name = get_platform()
@@ -341,11 +320,10 @@ def install_binaries(force: bool = False, backend: Optional[str] = None) -> dict
     # Check if already installed
     if not force:
         versions = get_current_versions()
-        if versions.get("llamacpp") and versions.get("llamaswap"):
+        if versions.get("llamacpp"):
             console.print(
-                f"[green]Binaries already installed:[/green] "
-                f"llama.cpp {versions.get('llamacpp')}, "
-                f"llama-swap {versions.get('llamaswap')}"
+                f"[green]Binary already installed:[/green] "
+                f"llama.cpp {versions.get('llamacpp')}"
             )
             return versions
 
@@ -353,35 +331,26 @@ def install_binaries(force: bool = False, backend: Optional[str] = None) -> dict
     BASE_DIR.mkdir(parents=True, exist_ok=True)
     BIN_DIR.mkdir(parents=True, exist_ok=True)
 
-    # Get asset names
+    # Get asset name
     llamacpp_asset = get_llamacpp_asset_name(backend, os_name, arch)
-    llamaswap_asset = get_llamaswap_asset_name(os_name, arch)
 
-    console.print(f"[bold]Installing Kapri binaries...[/bold]")
+    console.print(f"[bold]Installing Kapri binary...[/bold]")
     console.print(f"  llama.cpp: {llamacpp_asset}")
-    console.print(f"  llama-swap: {llamaswap_asset}")
 
-    # Fetch URLs
+    # Fetch URL
     llamacpp_url = fetch_latest_release_asset_url(LLAMACPP_REPO, llamacpp_asset)
-    llamaswap_url = fetch_latest_release_asset_url(LLAMASWAP_REPO, llamaswap_asset)
 
     # Download llama-server
     console.print("[blue]Downloading llama-server...[/blue]")
     server_bin = download_and_extract(llamacpp_url, BIN_DIR)
 
-    # Download llama-swap
-    console.print("[blue]Downloading llama-swap...[/blue]")
-    swap_bin = download_and_extract(llamaswap_url, BIN_DIR)
-
-    # Get version info from asset names
+    # Get version info from asset name
     import re
 
     llamacpp_version = re.search(r"b(\d+)", llamacpp_asset)
-    llamaswap_version = re.search(r"_(\d+)", llamaswap_asset)
 
     versions = {
         "llamacpp": f"b{llamacpp_version.group(1) if llamacpp_version else 'unknown'}",
-        "llamaswap": f"v{llamaswap_version.group(1) if llamaswap_version else 'unknown'}",
         "backend": backend,
     }
 

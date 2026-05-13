@@ -15,14 +15,14 @@
 
 ## Why Kapri?
 
-Kapri is a complete drop-in replacement for [Ollama](https://ollama.com). Built on **llama.cpp** + **llama-swap**, it gives you full control with zero cloud dependency.
+Kapri is a complete drop-in replacement for [Ollama](https://ollama.com). Built on **llama.cpp**'s native router mode, it gives you full control with zero cloud dependency.
 
 ### Key Features
 
 - **Full GPU Support** — Vulkan (AMD), CUDA (NVIDIA), ROCm (AMD Linux), SYCL (Intel), Metal (Apple Silicon), CPU
 - **Any GGUF Model** — Pull directly from HuggingFace, not limited to Ollama's registry
-- **Transparent Config** — Plain YAML you can read and edit, no hidden internals  
-- **Multi-Model Hot-Swap** — llama-swap with TTL-based auto-unload
+- **Transparent Config** — Plain INI you can read and edit, no hidden internals  
+- **Multi-Model Router** — native llama.cpp router with model auto-switching
 - **Universal Install** — `pip install kapri-ai`, works everywhere Python exists
 
 ### Kapri vs Ollama
@@ -32,8 +32,8 @@ Kapri is a complete drop-in replacement for [Ollama](https://ollama.com). Built 
 | Vulkan Support | Native | Blocked |
 | Any HuggingFace Model | Yes | Registry only |
 | Full llama-server Flags | Complete | Abstracted |
-| Transparent Config | YAML | Hidden |
-| Multi-model Hot-swap | Yes | Partial |
+| Transparent Config | INI | Hidden |
+| Multi-model Router | Yes | Partial |
 | Universal Install | pip | Platform-specific |
 
 ---
@@ -52,7 +52,7 @@ pip install kapri-ai
 kapri install
 ```
 
-This downloads llama-server and llama-swap binaries (auto-detects your GPU backend).
+This downloads the llama-server binary (auto-detects your GPU backend).
 
 Or specify a backend:
 ```bash
@@ -181,8 +181,8 @@ kapri install --backend cpu    # Force CPU
 | `kapri remove <model>` | Remove a model |
 | `kapri run <model>` | Open web UI chat (default) |
 | `kapri run <model> --tui` | Open terminal chat |
-| `kapri config` | Show full config YAML |
-| `kapri config show-all` | Show full config YAML |
+| `kapri config` | Show full config INI |
+| `kapri config show-all` | Show full config INI |
 | `kapri config show <model>` | Show specific model config |
 | `kapri config edit <model>` | Edit model config in editor |
 | `kapri config search <query>` | Search models in config |
@@ -248,9 +248,9 @@ print(chat.choices[0].message.content)
 
 ```
 ~/.kapri/                    # Base directory
-├── bin/                    # llama-server, llama-swap binaries
+├── bin/                    # llama-server binary
 ├── models/                # Downloaded GGUF files
-├── config.yaml            # llama-swap configuration
+├── models.ini             # llama.cpp router preset
 ├── server.pid            # Server process ID
 └── server.log            # Server logs
 ```
@@ -299,4 +299,4 @@ kapri pull unsloth/Qwen3.5-0.8B-GGUF
 
 ---
 
-<p align="center">Built on llama.cpp + llama-swap</p>
+<p align="center">Built on llama.cpp</p>
