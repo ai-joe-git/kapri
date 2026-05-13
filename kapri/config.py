@@ -62,7 +62,12 @@ def regenerate_config() -> str:
         if not gguf_files:
             continue
 
-        main_model = gguf_files[0]
+        # Prefer Dynamic (UD) quants — unsloth's older non-Dynamic quants produce garbage
+        ud_files = [f for f in gguf_files if "-UD-" in f.name or "-UD_" in f.name]
+        if ud_files:
+            main_model = sorted(ud_files, key=lambda f: f.stat().st_size, reverse=True)[0]
+        else:
+            main_model = sorted(gguf_files, key=lambda f: f.stat().st_size, reverse=True)[0]
         resolved_path = str(main_model.resolve())
 
         mmproj_path = None
