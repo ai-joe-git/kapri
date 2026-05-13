@@ -100,7 +100,6 @@ def pull_model(
 
     if local_path.exists():
         console.print(f"[yellow]Model already exists:[/yellow] {local_path}")
-        # Re-register in manifest and regenerate config (recovery path)
         manifest = get_local_models()
         existing = next((m for m in manifest if m["id"] == model_id), None)
         if existing:
@@ -114,6 +113,38 @@ def pull_model(
                 "name": registry_entry["name"] if registry_entry else model_id,
                 "filename": filename,
                 "path": str(local_path),
+                "size_gb": size_gb,
+                "quant": quant,
+                "context": registry_entry.get("context", 4096) if registry_entry else 4096,
+                "date_added": datetime.utcnow().isoformat() + "Z",
+                "hf_repo": hf_repo,
+            })
+        save_local_models(manifest)
+        from .config import regenerate_config
+        regenerate_config()
+        console.print(f"[bold green]Model ready:[/bold green] {model_id}")
+        return get_model_info(model_id)
+
+    # If registry pattern didn't match but files exist in dir, recover
+    existing_ggufs = [f for f in model_dir.glob("*.gguf") if "mmproj" not in f.name.lower()]
+    if existing_ggufs:
+        actual_file = existing_ggufs[0]
+        local_path = actual_file
+        filename = actual_file.name
+        console.print(f"[yellow]Using existing file:[/yellow] {actual_file}")
+        manifest = get_local_models()
+        existing = next((m for m in manifest if m["id"] == model_id), None)
+        if existing:
+            existing["filename"] = filename
+            existing["path"] = str(actual_file)
+            existing["date_updated"] = datetime.utcnow().isoformat() + "Z"
+        else:
+            size_gb = registry_entry.get("size_gb", {}).get(quant, 0) if registry_entry else 0
+            manifest.append({
+                "id": model_id,
+                "name": registry_entry["name"] if registry_entry else model_id,
+                "filename": filename,
+                "path": str(actual_file),
                 "size_gb": size_gb,
                 "quant": quant,
                 "context": registry_entry.get("context", 4096) if registry_entry else 4096,
