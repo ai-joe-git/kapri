@@ -4,7 +4,7 @@
     "name": "Qwen 3.5 0.8B",
     "description": "Unsloth's Qwen3.5 0.8B - Small but capable with vision.",
     "hf_repo": "unsloth/Qwen3.5-0.8B-GGUF",
-    "default_quant": "Q4_K_M",
+    "default_quant": "Q4_K_XL",
     "quants": [
       "IQ2_M",
       "IQ2_XXS",
@@ -77,7 +77,7 @@
     "name": "Qwen 3.5 2B",
     "description": "Unsloth's Qwen3.5 2B - Great balance of speed and capability with vision.",
     "hf_repo": "unsloth/Qwen3.5-2B-GGUF",
-    "default_quant": "Q4_K_M",
+    "default_quant": "Q4_K_XL",
     "quants": [
       "IQ2_M",
       "IQ2_XXS",
@@ -150,7 +150,7 @@
     "name": "Qwen 3.5 4B",
     "description": "Unsloth's Qwen3.5 4B - Powerful with vision capabilities.",
     "hf_repo": "unsloth/Qwen3.5-4B-GGUF",
-    "default_quant": "Q4_K_M",
+    "default_quant": "Q4_K_XL",
     "quants": [
       "IQ2_M",
       "IQ2_XXS",
@@ -223,7 +223,7 @@
     "name": "Qwen 3.5 9B",
     "description": "Unsloth's Qwen3.5 9B - Powerful model with full vision support.",
     "hf_repo": "unsloth/Qwen3.5-9B-GGUF",
-    "default_quant": "Q4_K_M",
+    "default_quant": "Q4_K_XL",
     "quants": [
       "IQ2_M",
       "IQ2_XXS",
@@ -296,7 +296,7 @@
     "name": "Qwen 3.5 27B",
     "description": "Unsloth's Qwen3.5 27B - Large model with vision.",
     "hf_repo": "unsloth/Qwen3.5-27B-GGUF",
-    "default_quant": "Q4_K_M",
+    "default_quant": "Q4_K_XL",
     "quants": [
       "IQ2_M",
       "IQ2_XXS",
@@ -367,7 +367,7 @@
     "name": "Qwen 3.5 35B-A3B",
     "description": "Unsloth's Qwen3.5 35B MoE with vision.",
     "hf_repo": "unsloth/Qwen3.5-35B-A3B-GGUF",
-    "default_quant": "Q4_K_M",
+    "default_quant": "Q4_K_XL",
     "quants": [
       "IQ2_M",
       "IQ2_XXS",
@@ -443,7 +443,7 @@
     "name": "Qwen 3.5 122B-A10B",
     "description": "Unsloth's Qwen3.5 122B MoE with vision.",
     "hf_repo": "unsloth/Qwen3.5-122B-A10B-GGUF",
-    "default_quant": "Q4_K_M",
+    "default_quant": "Q4_K_XL",
     "quants": [
       "BF16",
       "IQ1_M",
@@ -519,7 +519,7 @@
     "name": "Qwen 3.5 397B-A17B",
     "description": "Unsloth's Qwen3.5 397B MoE - Massive model with vision.",
     "hf_repo": "unsloth/Qwen3.5-397B-A17B-GGUF",
-    "default_quant": "Q4_K_M",
+    "default_quant": "Q4_K_XL",
     "quants": [
       "BF16",
       "IQ1_M",
@@ -593,7 +593,7 @@
     "name": "Gemma 4 26B-A4B",
     "description": "Unsloth's Gemma 4 26B - Vision model.",
     "hf_repo": "unsloth/gemma-4-26B-A4B-it-GGUF",
-    "default_quant": "Q4_K_M",
+    "default_quant": "Q4_K_XL",
     "quants": [
       "IQ2_M",
       "IQ2_XXS",
@@ -665,7 +665,7 @@
     "name": "Gemma 4 31B",
     "description": "Unsloth's Gemma 4 31B - Latest Google vision model.",
     "hf_repo": "unsloth/gemma-4-31B-it-GGUF",
-    "default_quant": "Q4_K_M",
+    "default_quant": "Q4_K_XL",
     "quants": [
       "IQ2_M",
       "IQ2_XXS",
@@ -737,7 +737,7 @@
     "name": "Gemma 4 E4B",
     "description": "Unsloth's Gemma 4 Efficient 4B - Compact vision.",
     "hf_repo": "unsloth/gemma-4-E4B-it-GGUF",
-    "default_quant": "Q4_K_M",
+    "default_quant": "Q4_K_XL",
     "quants": [
       "IQ2_M",
       "IQ3_XXS",
@@ -809,7 +809,7 @@
     "name": "Gemma 4 E2B",
     "description": "Unsloth's Gemma 4 Efficient 2B - Very compact vision.",
     "hf_repo": "unsloth/gemma-4-E2B-it-GGUF",
-    "default_quant": "Q4_K_M",
+    "default_quant": "Q4_K_XL",
     "quants": [
       "IQ2_M",
       "IQ3_XXS",
@@ -881,7 +881,7 @@
     "name": "Mistral Small 4 119B",
     "description": "Unsloth's Mistral Small 4 - Powerful model.",
     "hf_repo": "unsloth/Mistral-Small-4-119B-2603-GGUF",
-    "default_quant": "Q4_K_M",
+    "default_quant": "Q4_K_XL",
     "quants": [
       "BF16",
       "IQ1_M",
@@ -950,7 +950,7 @@
     "name": "MiniMax M2.5",
     "description": "Unsloth's MiniMax M2.5 - MoE model.",
     "hf_repo": "unsloth/MiniMax-M2.5-GGUF",
-    "default_quant": "Q4_K_M",
+    "default_quant": "Q4_K_XL",
     "quants": [
       "BF16",
       "IQ1_M",
@@ -1029,7 +1029,7 @@
     "name": "NVIDIA Nemotron 3 Super 120B",
     "description": "Unsloth's NVIDIA Nemotron 3 Super - Massive MoE.",
     "hf_repo": "unsloth/NVIDIA-Nemotron-3-Super-120B-A12B-GGUF",
-    "default_quant": "Q4_K_M",
+    "default_quant": "Q4_K_XL",
     "quants": [
       "BF16",
       "IQ1_M",
@@ -1099,7 +1099,7 @@
     "name": "NVIDIA Nemotron 3 Nano 4B",
     "description": "Unsloth's NVIDIA Nemotron 3 Nano - Compact.",
     "hf_repo": "unsloth/NVIDIA-Nemotron-3-Nano-4B-GGUF",
-    "default_quant": "Q4_K_M",
+    "default_quant": "Q4_K_XL",
     "quants": [
       "IQ2_M",
       "IQ2_XXS",
@@ -1166,7 +1166,7 @@
     "name": "Qwen 3.6 27B",
     "description": "Unsloth's Qwen3.6 27B - Powerful vision model.",
     "hf_repo": "unsloth/Qwen3.6-27B-GGUF",
-    "default_quant": "Q4_K_M",
+    "default_quant": "Q4_K_XL",
     "quants": [
       "IQ2_M",
       "IQ2_XXS",
@@ -1237,7 +1237,7 @@
     "name": "Qwen 3.6 35B-A3B",
     "description": "Unsloth's Qwen3.6 35B MoE - Powerful vision model.",
     "hf_repo": "unsloth/Qwen3.6-35B-A3B-GGUF",
-    "default_quant": "Q4_K_M",
+    "default_quant": "Q4_K_XL",
     "quants": [
       "IQ1_M",
       "IQ2_M",
@@ -1313,7 +1313,7 @@
     "name": "DeepSeek V3.2",
     "description": "Unsloth's DeepSeek V3.2 - MoE model.",
     "hf_repo": "unsloth/DeepSeek-V3.2-GGUF",
-    "default_quant": "Q4_K_M",
+    "default_quant": "Q4_K_XL",
     "quants": [
       "BF16",
       "IQ1_M",
@@ -1391,7 +1391,7 @@
     "name": "LTX Video 2.3",
     "description": "Unsloth's LTX Video - Image to Video model.",
     "hf_repo": "unsloth/LTX-2.3-GGUF",
-    "default_quant": "Q4_K_M",
+    "default_quant": "Q4_K_XL",
     "quants": [
       "Q2_K",
       "Q3_K_M",
@@ -1444,7 +1444,7 @@
     "name": "Qwen 3 Coder Next",
     "description": "Unsloth's Qwen3 Coder Next - Latest coding model.",
     "hf_repo": "unsloth/Qwen3-Coder-Next-GGUF",
-    "default_quant": "Q4_K_M",
+    "default_quant": "Q4_K_XL",
     "quants": [
       "IQ1_M",
       "IQ1_S",
@@ -1508,7 +1508,7 @@
     "name": "Kimi K2.5",
     "description": "Unsloth's Kimi K2.5 - Latest from Kimi.",
     "hf_repo": "unsloth/Kimi-K2.5-GGUF",
-    "default_quant": "Q4_K_M",
+    "default_quant": "Q4_K_XL",
     "quants": [
       "BF16",
       "IQ1_M",
@@ -1586,7 +1586,7 @@
     "name": "Qwen 3 Coder 30B-A3B",
     "description": "Unsloth's Qwen3 Coder MoE.",
     "hf_repo": "unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF",
-    "default_quant": "Q4_K_M",
+    "default_quant": "Q4_K_XL",
     "quants": [
       "IQ1_M",
       "IQ1_S",
