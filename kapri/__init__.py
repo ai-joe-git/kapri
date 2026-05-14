@@ -1,3 +1,3 @@
 """Kapri - Run AI locally. Beautifully."""
 
-__version__ = "0.3.6"
+__version__ = "0.3.8"
