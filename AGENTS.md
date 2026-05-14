@@ -53,6 +53,51 @@ Version is hardcoded in two files — both must be updated together:
 - **Binary downloads** pull from GitHub releases of `ggml-org/llama.cpp`, matching platform/arch/backend patterns.
 - **No Docker** — the app installs binaries directly to `~/.kapri/bin` (Unix) or `%APPDATA%/kapri/bin` (Windows).
 
+## config.py: INI format, not configparser
+
+`models.ini` starts with a top-level `version = 1` line (no section header), which makes Python's `configparser` unusable — it throws `MissingSectionHeaderError`. Do NOT use `configparser` to read or write this file.
+
+- **Writing**: `regenerate_config()` builds the file as raw strings and writes directly.
+- **Reading**: `load_config()` uses `_parse_ini()` — a manual regex-based parser in `config.py`.
+- **Imports**: `regenerate_config` is imported lazily inside functions in `models.py` (not at module level) to avoid circular imports between `config ↔ models`.
+
+## Unsloth GGUF quirks (critical for model pulling)
+
+- **`-UD-` filename prefix**: unsloth names Dynamic XL/IQ quants with a `-UD-` prefix (e.g., `Qwen3.5-0.8B-UD-Q4_K_XL.gguf`). The registry's `file_pattern` generates without the prefix, so `models.py` has a 404-retry that inserts `-UD-` into the filename.
+- **Prefer Dynamic quants**: pre-March-5 non-Dynamic unsloth GGUFs produce `/////` garbage output. When multiple GGUF files exist in a model directory, `regenerate_config()` prefers files with `-UD-` in the name and picks the largest.
+- **Deleting old quants**: if both an old non-Dynamic and a new Dynamic GGUF exist, delete the old one manually. The presence of both causes `regenerate_config` confusion.
+
+## Qwen 3.5/3.6 sampling defaults
+
+These are from unsloth's documented non-thinking general-task defaults and MUST be in `models.ini`:
+
+```
+temp = 0.7
+top-p = 0.8
+top-k = 20
+min-p = 0.0    ← critical: llama.cpp defaults to 0.1, which kills ~90% of Qwen tokens
+reasoning = off
+```
+
+Without `min-p = 0.0`, Qwen models output `????` or `////` garbage. Without `reasoning = off`, large Qwen models (27B+) can get stuck in thinking loops burning the full context.
+
+## Vercel deploy
+
+The website (`kapri-ai.vercel.app`) and registry (`kapri-registry.vercel.app`) are separate Vercel projects under `aijoes-projects`. Git integration is configured in the Vercel dashboard (root directories: `./website` and `./registry`). The Vercel CLI auto-links to the first matching project scope and can mis-deploy to wrong aliases — prefer the dashboard for deploys or link carefully. `.vercel` directories are gitignored.
+
+## PyPI publish flow
+
+No CI publishes to PyPI — it's manual:
+
+```pwsh
+# 1. Bump version in both pyproject.toml and kapri/__init__.py
+# 2. Build
+python -m build
+# 3. Upload (token via TWINE_PASSWORD env var or .pypirc)
+twine upload dist/kapri_ai-<version>*
+# 4. Commit version bump + dist/ and push
+```
+
 ## CI
 
 - **Release** (`release.yml`): Triggered by `v*` tags. PyInstaller builds on Linux/Windows/macOS, then creates a GitHub release.
